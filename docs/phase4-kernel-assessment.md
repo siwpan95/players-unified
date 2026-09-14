@@ -14,11 +14,14 @@
 | Codis 有用 | ❌ 完全无关 | Redis 分布式代理，与本地播放器零交集（localplayer README L186 已述） |
 | Cordis 引入 localplayer | ❌ 不可行（不止是过度设计） | Cordis 要求 **Node.js ≥ 22 / ESM-only**；MV3 扩展无 Node 运行时 |
 | MediaMTX 引入 localplayer | ❌ 本地文件场景仍属多余 | MediaMTX 是**媒体路由器**，只转封装不转码，且不直接读本地文件 |
-| daily_player 换 PluginPlayer 内核 | ✅ **可行，且比预想更顺** | PluginPlayer 已有 `--hidden` 无人值守模式 + 完整控制通道 |
+| daily_player 换 PluginPlayer 内核 | ✅ **可行，且 S1 已实测通过** | PluginPlayer 已有 `--hidden` 无人值守模式 + 完整控制通道；S1 尖峰 13 项断言全绿（见 §8） |
 | 以 PluginPlayer 为内核做「三合一」 | ⚠️ **部分成立（≈2.5 合 1）** | 桌面端可真合流；浏览器端受 MV3 沙箱限制，只能"接流"不能"装内核" |
 
 **一句话**：内核替换这条线**值得做**（且 Phase 1/2 刚建的 `PlayerEngine` 端口正好就是替换缝）；
 但"三端都采用 Cordis/MediaMTX"这条线**不成立**——Cordis 跑不进浏览器扩展，MediaMTX 是给直播源做桥的。
+
+> **2026-09-15 更新**：S0（适配器）与 S1（真实播放器尖峰）已完成并全绿，实测数据见 **§8**。
+> 关键数字：**控制通道往返 ≈ 16.7ms（正好一帧 @60fps）**，字幕 / 截图 / 进度 / 契约全部打通。
 
 ---
 
@@ -167,27 +170,138 @@ Redis 分布式集群代理（README L186 已定性）。本地单用户播放�
 | **分发变重** | 现状 `pip install python-vlc` + 装 VLC；换成 PluginPlayer 需 MinGW 构建 + FFmpeg/SDL3 vendor。对终端用户，VLC 反而更省事（除非发布预编译 exe）。 |
 | **可能被拖成 Windows-only** | PluginPlayer 当前构建脚本面向 MinGW/Windows；daily_player 是 Python+tkinter 本可跨平台。 |
 | **IPC 脆弱性** | 外部进程 + 令牌 + 端口 + 崩溃/僵尸进程，比进程内 VLC 多一整类故障面。 |
-| **逐帧能力无法远程驱动** | 控制通道请求在主线程串行执行（PLUGIN_GUIDE：60fps 下 p50 ≈ 16.6ms）。UI 控制够用，逐帧特效/OSD 不行。 |
+| **逐帧能力无法远程驱动** | 控制通道请求在主线程**每帧开头**抽干一次（`app.cpp:1058`），**S1 实测 p50 = 16.65ms ≈ 1 帧 @60fps**（见 §8.2）。UI 控制够用（≤60 次/秒），逐帧特效/OSD 不行。 |
 | **功能缺口** | 全屏无 RPC 方法；截图要绕 `command.invoke`；播放列表要 UI 侧自建。 |
+| **截图受写入白名单限制**（S1 新发现） | `Host::isWriteAllowed`（`host.cpp:539`）默认只放行 **exeDir**；要截图到别处，启动播放器**必须**加 `--write-dir <DIR>`，否则静默失败。 |
+| **`--rpc-token` 有长度下限**（S1 踩坑） | 少于 16 字符 → 启动即 `exit 2`（`main.cpp:249`）。 |
+| **子进程 stdout 不能用 PIPE**（S1 踩坑） | 启动日志远超 4KB，PIPE 无人读 → 播放器阻塞在插件加载中途，表现为"控制通道永远起不来"。**必须重定向到文件**。 |
 | **VLC 的隐性能力** | VLC 的网络流、DVD、均衡器、libass 字幕渲染等是多年积累；FFmpeg 覆盖面广不等于等价替换，需按实际媒体样本实测。 |
 
 ---
 
 ## 6. 建议的推进顺序（低风险、可验证）
 
-| 步骤 | 动作 | 产出 / 验证 |
+| 步骤 | 动作 | 状态 / 验证 |
 |---|---|---|
-| **S0** | 补 `daily_player/player_engine_rpc.py`：Python 版控制通道 `PlayerEngine` 适配器（对齐现有 JS 版） | 端口级证明"换内核不动 UI"；用假 RPC 服务做单测 |
-| **S1** | 形态 A 尖峰：起 `pluginplayer.exe --rpc-port`，用最小 tkinter 面板驱动播放 | 实测延迟、字幕（`subtitle.line`）、进度、截图链路 |
-| **S2** | 若必须单窗口：给 PluginPlayer 加 `--embed <hwnd>`（`SDL_CreateWindowFrom`） | 实测 OSD/渲染在外部窗口是否正常 |
-| **S3** | 补齐 RPC 缺口：`app.fullscreen`（或原生插件命令兜底） | daily_player 全屏可用 |
+| **S0** | 补 `daily_player/player_engine_rpc.py`：Python 版控制通道 `PlayerEngine` 适配器（对齐现有 JS 版） | ✅ **已完成**（v0.4.0）。协议级测试：真 TCP 假控制通道，覆盖 auth/换算/夹取/事件帧干扰/错令牌 |
+| **S1** | 形态 A 尖峰：起 `pluginplayer.exe --hidden --rpc-port`，用最小 tkinter 面板驱动播放 | ✅ **已完成**（v0.5.0）。**13 项断言全绿**，实测数据见 §8；另附无 GUI 回归 14 项 |
+| **S2** | 若必须单窗口：给 PluginPlayer 加 `--embed <hwnd>`（`SDL_CreateWindowFrom`） | ⏸ 未启动。**仅在"必须单窗口"时才需要**——S1 证明双窗口形态已可用，故降级为可选 |
+| **S3** | 补齐 RPC 缺口：`app.fullscreen`（或原生插件命令兜底） | ⏸ 未启动。唯一影响：daily_player 的全屏按钮对 PluginPlayer 内核无效（本地跟踪，不报错） |
 | **搁置** | localplayer 引入 Cordis / MediaMTX | 运行时不兼容 / 场景不匹配；若将来接直播源再按 README L193 触发 |
 
 ---
 
 ## 7. 需要修正的既有文档表述（若采纳）
 
-- `localplayer/README.md:187` Cordis 一条：理由应从"当前规模不需要完整插件市场"升级为
-  **"MV3 扩展无 Node 运行时，而 Cordis 要求 Node ≥ 22，运行时不兼容"**（结论不变，但更硬）。
-- `ARCHITECTURE.md` §7 Phase 4：可从"仅作长期设想"更新为"已评估：daily_player 端可行，推荐 S0→S1 推进；
-  localplayer 端受沙箱限制不成立"（可引用本文档）。
+- ✅ **已修**（v0.5.0）`localplayer/README.md:187` Cordis 一条：理由已从"当前规模不需要完整插件市场"
+  升级为 **"MV3 扩展无 Node 运行时，而 Cordis 要求 Node ≥ 22，运行时不兼容"**，
+  并补充"Cordis 归 PluginPlayer，不归浏览器端"。
+- ✅ **已修** `ARCHITECTURE.md` §7 Phase 4：已更新为"已评估 + S0/S1 完成"。
+
+---
+
+## 8. S1 实测结果（2026-09-15，全部通过）
+
+复现方式（无人值守，不弹窗）：
+
+```bash
+F:/Python314/python.exe daily_player/spike_s1.py
+```
+
+脚本会自己拉起 `pluginplayer.exe --hidden --no-audio --rpc-port <随机> --rpc-token <随机> --write-dir <out>`，
+跑完 7 组测量后 `app.quit` 收进程，并把结构化结果写到 `docs/s1-spike-report.json`。
+**退出码 0 = 全绿**；实际耗时 9.68s。
+
+### 8.1 连接与握手
+
+| 项 | 结果 |
+|---|---|
+| auth + ping | ✅ `abi=3`，`app=pluginplayer` |
+| 插件加载 | 11 个全部 loaded（含 `subtitles` / `snapshot` / `track_selector`） |
+
+### 8.2 RPC 往返延迟（各 30 次采样，本地回环）
+
+| method | min | avg | p50 | p95 | max |
+|---|---|---|---|---|---|
+| `ping` | 16.528ms | **16.666ms** | **16.653ms** | 16.825ms | 16.832ms |
+| `player.stats` | 16.398ms | **16.695ms** | **16.674ms** | 17.004ms | 17.544ms |
+
+**判读**：p50 ≈ **16.65ms ≈ 1 帧 @60fps**，且方差极小（max-min < 1.2ms）。
+这不是网络抖动，而是**架构使然**——控制通道请求在主线程**每帧开头**抽干一次
+（`app.cpp:1058` 注释明写"必须在每帧开头把队列抽干，否则 RPC 客户端会等到超时"）。
+
+含义：
+- ✅ 对 **UI 控制**（播放/暂停/seek/音量/倍速）完全够用，人手点击感知不到 16ms。
+- ✅ 对 **进度轮询**够用，但要按 ≥100ms 节流（5~10Hz 即可，别每帧问）。
+- ❌ 对 **逐帧驱动**（每帧一次 RPC 做特效/OSD）不行：上限就被锁在 60 次/秒，
+  且会把主线程请求队列顶满。这类能力必须留在**插件内**（进程内），不能走 RPC。
+
+### 8.3 打开媒体与进度推进
+
+| 项 | 结果 |
+|---|---|
+| `player.open` | ✅ 1280x720 h264 / aac，8.0s，30fps，2.87Mbps |
+| 进度推进 | ✅ 采样 `[0.416, 0.800, 1.166, 1.566, 1.933, 2.316]` 单调前进 |
+
+### 8.4 控制类往返
+
+| 动作 | 结果 |
+|---|---|
+| `seek(1000ms)` | ✅ 实际落在 `1.200s`（seek 到关键帧 + 采样延迟，符合预期） |
+| `setRate(1.5)` | ✅ `speed=1.5` 读回一致 |
+| `setVolume(42)` | ✅ 本地跟踪 `volume=42`（控制通道无 getter，S0 已约定） |
+| `setMuted(True)` | ✅ 本地跟踪 `muted=True` |
+
+### 8.5 字幕链路 `subtitle.line` ✅
+
+订阅 `subtitle.line` → `command.invoke {name:'subtitle.load', args:[<srt>]}` →
+播放 4 秒内收到 **1 帧非空事件**，文本 = `SUBTITLE 字幕测试 你好世界`。
+
+**1 帧是正确结果，不是丢事件**：内核只在文本**变化时**广播
+（`app.cpp:948` `if (line != lastSubLine_)`）。测试用的 srt 全程只有一行，
+所以从头到尾就该只有 1 次"变化"。换多行字幕会按行切换各来一次。
+
+结论：**外部 UI 可以自己画字幕**，这是比"只能靠内核 OSD 渲染"更好的形态。
+
+### 8.6 截图链路 ✅（含写入白名单验证）
+
+`command.invoke {name:'snapshot', args:[<out>]}` → 落盘 `snapshot_0003.png`，**3,687,468 B**。
+
+这里验证了 §5 新记的那条风险：截图目录**必须**在写入白名单内。
+启动时传了 `--write-dir <out>` 才写成功；不传则目标在 exeDir 之外时会被
+`Host::isWriteAllowed`（`host.cpp:539`）静默拒掉。
+
+### 8.7 端口契约
+
+`getState()` 返回
+`{'playing': True, 'timeMs': 6201, 'durationMs': 8000, 'rate': 1.0, 'volume': 42, 'muted': True, 'fullscreen': False}`，
+**符合** `schema/media-item.schema.json` 的 `definitions.PlayerState`。
+
+→ 即：**VlcPlayerEngine 与 PluginPlayerRpcEngine 产出同一个 PlayerState**，
+上层 UI 换适配器即可，这验证了 Phase 2 建端口的价值。
+
+### 8.8 S1 踩到的三个坑（已写进代码注释 / 本文档）
+
+1. **子进程 stdout 不能用 PIPE**：启动日志 >4KB，PIPE 无人读 → 播放器阻塞在"插件 #2"，
+   控制通道永远起不来（表现为"端口超时"）。必须重定向到**文件**。
+2. **`--rpc-token` 至少要 16 字符**（`main.cpp:249`），短了直接 `exit 2`。
+3. **冷启动要留足等待**：11 个插件 + 1.6MB 字体，实测可达 10s 以上；等端口的 deadline 给 15s 会误判。
+
+### 8.9 形态 A 面板
+
+`daily_player/spike_panel.py`：
+- **控制逻辑与 tkinter 分离**（`PanelController` 不 import tkinter）→ 可在无 GUI 环境回归，
+  `tests/test_spike_panel.py` **14 项断言全绿**。
+- 面板 5Hz 轮询（200ms），与 §8.2 的延迟结论匹配。
+- 自带 `--no-gui` 冒烟模式，已对真实播放器跑通（`exit 0`）。
+
+---
+
+## 9. S1 之后的判断
+
+| 问题 | 结论 |
+|---|---|
+| 内核替换可行吗？ | ✅ **可行且已跑通**，不是纸面结论 |
+| 需要立刻做 S2（单窗口嵌入）吗？ | ⏸ **不必**。双窗口形态功能完整；S2 只在"必须单窗口"时才值得动 C++ 重编译 |
+| daily_player 现在就可以默认切到 PluginPlayer 吗？ | ⚠️ **还早**。缺 `app.fullscreen`、播放列表需 UI 侧自建、分发要带预编译 exe；建议先保持双内核可切换 |
+| localplayer 端？ | ⏸ 维持搁置 |

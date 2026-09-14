@@ -1,0 +1,120 @@
+{
+  "auth + ping 通过": {
+    "ok": true,
+    "detail": "abi=3 app=pluginplayer"
+  },
+  "abi": 3,
+  "latency.ping": {
+    "n": 30,
+    "avgMs": 16.666,
+    "p50Ms": 16.653,
+    "p95Ms": 16.825,
+    "maxMs": 16.832,
+    "minMs": 16.528
+  },
+  "ping p95 < 200ms": {
+    "ok": true,
+    "detail": "p95=16.825ms"
+  },
+  "latency.player.stats": {
+    "n": 30,
+    "avgMs": 16.695,
+    "p50Ms": 16.674,
+    "p95Ms": 17.004,
+    "maxMs": 17.544,
+    "minMs": 16.398
+  },
+  "player.stats p95 < 200ms": {
+    "ok": true,
+    "detail": "p95=17.004ms"
+  },
+  "mediaInfo": {
+    "path": "G:\\repos\\pluginplayer\\dist\\test_assets\\sample.mp4",
+    "format": "mov,mp4,m4a,3gp,3g2,mj2",
+    "video_codec": "h264",
+    "audio_codec": "aac",
+    "width": 1280,
+    "height": 720,
+    "fps": 30.0,
+    "duration": 8.0,
+    "bitrate": 2871932,
+    "sample_rate": 48000,
+    "channels": 1,
+    "has_video": 1,
+    "has_audio": 1,
+    "hwdec": ""
+  },
+  "player.open 成功": {
+    "ok": true,
+    "detail": "1280x720 h264 dur=8.0s"
+  },
+  "positions": [
+    0.416,
+    0.8,
+    1.166,
+    1.566,
+    1.933,
+    2.316
+  ],
+  "播放进度推进": {
+    "ok": true,
+    "detail": "samples=[0.416, 0.8, 1.166, 1.566, 1.933, 2.316]"
+  },
+  "seek(1000ms) 落到 ~1s": {
+    "ok": true,
+    "detail": "position=1.200s"
+  },
+  "setRate(1.5) 生效": {
+    "ok": true,
+    "detail": "speed=1.5"
+  },
+  "setVolume(42) 本地跟踪": {
+    "ok": true,
+    "detail": "volume=42"
+  },
+  "setMuted(True) 本地跟踪": {
+    "ok": true,
+    "detail": ""
+  },
+  "subtitleEvents": {
+    "total": 1,
+    "nonEmpty": 1,
+    "sample": "SUBTITLE 字幕测试 你好世界"
+  },
+  "收到非空 subtitle.line": {
+    "ok": true,
+    "detail": "共 1 帧，非空 1 条，首条=\"SUBTITLE 字幕测试 你好世界\""
+  },
+  "snapshot": {
+    "newFiles": [
+      "snapshot_0003.png"
+    ],
+    "bytes": 3687468
+  },
+  "截图落盘（--write-dir 生效）": {
+    "ok": true,
+    "detail": "新文件=['snapshot_0003.png'] 大小=3687468B"
+  },
+  "PlayerState 符合 schema": {
+    "ok": true,
+    "detail": "{'playing': True, 'timeMs': 6201, 'durationMs': 8000, 'rate': 1.0, 'volume': 42, 'muted': True, 'fullscreen': False}"
+  },
+  "playerState": {
+    "playing": true,
+    "timeMs": 6201,
+    "durationMs": 8000,
+    "rate": 1.0,
+    "volume": 42,
+    "muted": true,
+    "fullscreen": false
+  },
+  "elapsedSec": 9.68,
+  "failures": [],
+  "passed": true,
+  "env": {
+    "exe": "G:\\repos\\pluginplayer\\dist\\pluginplayer.exe",
+    "media": "G:\\repos\\pluginplayer\\dist\\test_assets\\sample.mp4",
+    "port": 13208,
+    "outDir": "G:\\repos\\players-unified\\daily_player\\_s1_out"
+  }
+}

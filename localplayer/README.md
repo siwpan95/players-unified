@@ -184,7 +184,8 @@ LocalPlayer.plugins.register({
 结论：**三者现阶段都不相关（MediaMTX 抛开 WebRTC 看其本体亦然），引入属过度设计。**
 
 - **Codis**：基于代理的 Redis 分布式集群方案，解决单机 Redis 的容量 / 高可用 / 水平扩容，是后端基础设施。本项目是纯前端、单机、无后端、无共享状态的 MV3 浏览器扩展，既不存数据也不服务多用户，没有需要 Codis 兜底的 Redis。
-- **Cordis**：Koishi 的可逆插件系统元框架（插件可加载 / 卸载 / 销毁），是 Node/TS 服务端框架；而扩展是浏览器 JS，MV3 本身已有轻量能力组合方式（background / content script / message passing / options_page），当前规模远不需要一个完整插件市场。
+- **Cordis**：Koishi 的可逆插件系统元框架（插件可加载 / 卸载 / 销毁）。**不只是"用不上"，而是运行时就不兼容**：Cordis 要求 **Node.js ≥ 22 且为 ESM-only**，其热重载也是针对 Node 环境实现的；MV3 扩展跑在浏览器里，**没有 Node 运行时**，装不上也跑不起来（这与"过度设计"是两回事——前者是取舍，后者是不可能）。此外 MV3 已有轻量能力组合方式（background / content script / message passing / options_page），当前规模也远不需要一个完整插件市场。
+  > 补充（三端合并后再评估）：Cordis 在 **PluginPlayer** 侧是成立的——它本来就是 Node + Cordis 的插件宿主（`pluginplayer/host-js/`）。所以正确结论是"Cordis 归 PluginPlayer，不归浏览器端"，而非"Cordis 没用"。
 - **MediaMTX**：自带多协议的流媒体服务器（RTSP / RTMP / HLS / WebRTC / SRT），本质是一个**协议桥**——把直播源（RTSP 摄像头、OBS 的 RTMP 推流、SRT 等）收流后再以多种协议重分发；它只转封装（transmux）不转码。本项目播放的是本地静态文件（mp4 / mp3 / m3u8），浏览器已能直接播放，无需任何流媒体服务器中转；其 HLS 输出是给直播流转封装设计的，用 Flask + 扩展自带 URL 直接服务静态文件更简单，且已经这么做。
 
 ### 什么时候才值得考虑

@@ -40,6 +40,9 @@ logs/
 Thumbs.db
 .DS_Store
 
+# --- S1 尖峰产物（播放器日志、截图 PNG，由 spike_s1.py / spike_panel.py 生成）---
+daily_player/_s1_out/
+
 # --- 本仓库整合时显式排除的重内容（见 ARCHITECTURE.md §0） ---
 # localplayer 个人媒体库（数百 GB .ts/.mp4）
 localplayer/media/

@@ -23,6 +23,7 @@
 import json
 import os
 import socket
+import threading
 
 from player_engine import clamp_rate, clamp_volume  # 夹紧逻辑与引擎无关，复用同一份
 
@@ -59,7 +60,12 @@ class ControlChannel:
         self.sock = None
         self._buf = b''
         self._next_id = 1
+        self._next_id_lock = threading.Lock()
         self.authed = False
+        self.events = []          # 已收到的事件帧 [{'topic':..., 'data':...}]
+        self._handlers = []       # 事件回调（onEvent 注册）
+        self._events_lock = threading.Lock()
+        self._last = None         # _handle_line 解析出的响应帧
 
     # ---- 令牌解析：显式 token > 环境变量 > 令牌文件 ----
     def resolve_token(self):
@@ -111,26 +117,97 @@ class ControlChannel:
         line, _, self._buf = self._buf.partition(b'\n')
         return line
 
+    # ---- 事件（服务端主动推送 {"event":"<topic>","data":{...}}）----
+    def _handle_line(self, line):
+        """消化一帧。事件帧 → 入队并返回 True；响应帧 → 存 self._last 返回 False。"""
+        line = (line or b'').strip()
+        if not line:
+            return False
+        try:
+            msg = json.loads(line.decode('utf-8'))
+        except (ValueError, UnicodeDecodeError):
+            return False
+        if not isinstance(msg, dict):
+            return False
+        if 'event' in msg:
+            ev = {'topic': msg.get('event'), 'data': msg.get('data')}
+            with self._events_lock:
+                self.events.append(ev)
+            for h in list(self._handlers):
+                try:
+                    h(ev)
+                except Exception:
+                    pass          # 回调异常不能影响收包
+            return True
+        self._last = msg
+        return False
+
+    def subscribe(self, topic='*'):
+        """订阅主题。'*' 表示全部（服务端实现：'*' 会清空过滤表 → 收全部）。"""
+        return self.call('topic.subscribe', {'topic': topic})
+
+    def pump(self, timeout=0.0):
+        """把已到达的帧消化掉（不等待响应）。timeout=0 时非阻塞。
+
+        返回本次收到的事件数。用于 UI 主循环里取 subtitle.line 之类的推送。
+        """
+        if not self.sock:
+            return 0
+        n = 0
+        old = self.sock.gettimeout()
+        try:
+            self.sock.settimeout(timeout if timeout and timeout > 0 else 0.0)
+            while True:
+                line = None
+                if b'\n' in self._buf:
+                    line, _, self._buf = self._buf.partition(b'\n')
+                else:
+                    try:
+                        chunk = self.sock.recv(65536)
+                    except (socket.timeout, BlockingIOError, OSError):
+                        break
+                    if not chunk:
+                        break
+                    self._buf += chunk
+                    continue
+                if self._handle_line(line):
+                    n += 1
+        finally:
+            self.sock.settimeout(old)
+        return n
+
+    def onEvent(self, handler):
+        """注册事件回调；返回一个可调用的注销函数。"""
+        self._handlers.append(handler)
+
+        def _un():
+            try:
+                self._handlers.remove(handler)
+            except ValueError:
+                pass
+        return _un
+
+    def takeEvents(self, topic=None):
+        """取走并清空已缓存的事件（可按 topic 过滤）。"""
+        with self._events_lock:
+            out = [e for e in self.events if topic is None or e.get('topic') == topic]
+            self.events = [e for e in self.events if topic is not None and e.get('topic') != topic]
+        return out
+
     def call(self, method, params=None):
         """发起一次调用，返回结果；ok:false 抛 RpcError。"""
         if not self.sock:
             raise RpcError('未连接到控制通道（先用 connect()，或确认播放器带 --rpc-port 启动）')
-        mid = self._next_id
-        self._next_id += 1
+        with self._next_id_lock:
+            mid = self._next_id
+            self._next_id += 1
         self._send({'id': mid, 'method': method, 'params': params or {}})
 
         while True:
-            line = self._read_line().strip()
-            if not line:
-                continue
-            try:
-                msg = json.loads(line.decode('utf-8'))
-            except (ValueError, UnicodeDecodeError):
-                continue
-            # 服务端主动推送的事件帧：与本次调用无关，跳过
-            if 'event' in msg:
-                continue
-            if msg.get('id') != mid:
+            if self._handle_line(self._read_line()):
+                continue                      # 事件帧：与本调用无关，已入队
+            msg = self._last
+            if not msg or msg.get('id') != mid:
                 continue
             if not msg.get('ok'):
                 raise RpcError(msg.get('error') or f'{method} 失败')
@@ -191,7 +268,12 @@ class PluginPlayerRpcEngine:
         return self
 
     def snapshot(self, path):
-        """经原生 snapshot 命令落盘（该命令收的是目录）。"""
+        """经原生 snapshot 命令落盘（该命令收的是目录，文件名为 snapshot_0001.png 递增）。
+
+        **写入白名单（S1 实测确认）**：宿主只允许插件写到 exeDir，
+        写到别处会被 `Host::isWriteAllowed` 拒（host.cpp:539）。
+        要写到播放器目录之外，启动时必须显式加 `--write-dir <DIR>`。
+        """
         d = dirname(path)
         return self.rpc.call('command.invoke',
                              {'name': 'snapshot', 'args': [d] if d else []})
@@ -225,9 +307,26 @@ class PluginPlayerRpcEngine:
         self.rpc.call('player.stop')
         return self
 
+    def info(self):
+        """player.info：容器/编解码/分辨率/时长等。"""
+        return self.rpc.call('player.info')
+
     def tracks(self):
         """返回 {video:[...], audio:[...], subtitle:[...]}。"""
         return self.rpc.call('player.tracks')
+
+    def loadSubtitle(self, path):
+        """外挂字幕：走 subtitles 插件的 subtitle.load 命令（内核真正加载）。
+
+        加载后内核会在每帧算当前行并广播 `subtitle.line` 事件
+        （app.cpp:943-955），外部 UI 订阅该主题即可自己画字幕。
+        """
+        return self.rpc.call('command.invoke',
+                             {'name': 'subtitle.load', 'args': [str(path)]})
+
+    def takeEvents(self, topic=None):
+        """取走并清空已缓存的事件（可按 topic 过滤），见 ControlChannel.takeEvents。"""
+        return self.rpc.takeEvents(topic)
 
     def selectTrack(self, type_, index):
         return self.rpc.call('player.select_track', {'type': int(type_), 'index': int(index)})
