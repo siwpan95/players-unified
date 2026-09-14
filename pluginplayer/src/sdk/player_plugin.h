@@ -155,6 +155,10 @@ enum PP_DispatchMode {
 #define PP_TOPIC_APP_READY      "app.ready"
 #define PP_TOPIC_APP_QUIT       "app.quit"
 #define PP_TOPIC_APP_TICK       "app.tick"
+/* Phase 4 / S3：全屏状态变化。JSON {"fullscreen":0|1}。
+ * 由 App::setFullscreen() 广播 —— 快捷键 F/ESC 与 RPC app.fullscreen 都会触发，
+ * 外部 UI 与进程内插件据此同步自己的全屏按钮，不用各自猜。 */
+#define PP_TOPIC_APP_FULLSCREEN "app.fullscreen"
 #define PP_TOPIC_MEDIA_OPENED   "media.opened"
 #define PP_TOPIC_MEDIA_CLOSED   "media.closed"
 #define PP_TOPIC_MEDIA_EOF      "media.eof"

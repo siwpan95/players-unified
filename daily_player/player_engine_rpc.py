@@ -13,9 +13,12 @@
                       （原生命令收的是**目录**，见 src/plugins/snapshot/plugin.cpp:196）
 
 与 JS 版同样的取舍：
-  - `volume / muted / fullscreen` 控制通道**没有 getter**（player.stats 不含这三项），
+  - `volume / muted` 控制通道**没有 getter**（player.stats 不含这两项），
     由本适配器本地跟踪（经自身 setter 更新）。
-  - `fullscreen` 控制通道没有对应的 method，无法真正切换远端窗口全屏（已知缺口）。
+  - **S3 已补齐 `fullscreen`**：新增 `app.fullscreen` 方法（真实切换 SDL 窗口）
+    与 `app.fullscreen` 事件（快捷键 F/ESC 也会发）。`getState()` 前先消化事件，
+    所以能反映"用户直接在播放器窗口按 F"这类非本适配器发起的变化。
+    仅在 `--hidden`（无可见窗口）下会返回失败并抛 RpcError。
 
 协议要点：连接后**第一条消息必须是 auth**，否则任何调用都会被拒。
 """
@@ -278,8 +281,45 @@ class PluginPlayerRpcEngine:
         return self.rpc.call('command.invoke',
                              {'name': 'snapshot', 'args': [d] if d else []})
 
+    # ---- S3：全屏（控制通道 app.fullscreen，Phase 4 补齐）----
+    def setFullscreen(self, on):
+        """切换远端播放器窗口全屏。
+
+        S3 之前这是**纯本地跟踪的假状态**（控制通道没有对应 method）。现在走
+        `app.fullscreen`，真实切换 SDL 窗口并广播 `app.fullscreen` 事件。
+
+        注意 `--hidden`（无可见窗口）下播放器会返回 ok:false，本方法抛 RpcError ——
+        这是**有意为之**：宁可让调用方知道没生效，也不假装成功。
+        """
+        r = self.rpc.call('app.fullscreen', {'value': 1 if on else 0})
+        self._fullscreen = bool((r or {}).get('fullscreen', on))
+        return self
+
+    def toggleFullscreen(self):
+        """不传 value → 由播放器自己取反。"""
+        r = self.rpc.call('app.fullscreen', {'value': -1})
+        self._fullscreen = bool((r or {}).get('fullscreen', False))
+        return self
+
+    def _applyEvents(self):
+        """消化已到达的事件帧，用 `app.fullscreen` 事件校正本地跟踪状态。
+
+        快捷键 F / ESC 也会触发该事件，所以外部 UI 的全屏按钮能跟上
+        **用户在播放器窗口里按 F** 这种非本适配器发起的变化。
+        """
+        try:
+            self.rpc.pump(0.0)
+        except RpcError:
+            return
+        for ev in self.rpc.takeEvents('app.fullscreen'):
+            d = ev.get('data') or {}
+            self._fullscreen = bool(d.get('fullscreen'))
+
     def getState(self):
         st = self.rpc.call('player.stats') or {}
+        # 放在 call() **之后**：本次调用往返期间到达的事件也一并消化
+        # （call() 只是把事件入队，不处理）
+        self._applyEvents()
         try:
             pos = float(st.get('position') or 0)
         except (TypeError, ValueError):
@@ -299,6 +339,7 @@ class PluginPlayerRpcEngine:
             'rate': rate if rate > 0 else 1.0,
             'volume': self._volume,      # 控制通道无 getter → 本地跟踪
             'muted': self._muted,
+            # S3 起不再是"只本地跟踪"：由 app.fullscreen 事件校正（含用户按 F 的情况）
             'fullscreen': self._fullscreen,
         }
 

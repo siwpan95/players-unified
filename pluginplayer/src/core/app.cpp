@@ -367,6 +367,26 @@ bool App::setAudioDevice(SDL_AudioDeviceID id) {
     return true;
 }
 
+/* Phase 4 / S3：全屏的唯一入口（快捷键 F / ESC 与 RPC app.fullscreen 共用）。 */
+bool App::setFullscreen(bool on) {
+    if (!win_) { PP_WARN("setFullscreen: 窗口尚未创建"); return false; }
+    /* --hidden 是给"无人值守 + 控制通道"用的：窗口被创建为 SDL_WINDOW_HIDDEN。
+     * 此时切全屏既看不见也查不出，直接拒绝并让调用方知道没生效。 */
+    if (hidden_) { PP_WARN("setFullscreen: --hidden 模式下无可见窗口，忽略"); return false; }
+
+    if (fullscreen_ != on) {
+        if (!SDL_SetWindowFullscreen(win_, on)) {
+            PP_WARN("setFullscreen(%d) 失败: %s", on ? 1 : 0, SDL_GetError());
+            return false;
+        }
+        fullscreen_ = on;
+    }
+    /* 广播让外部 UI（如 daily_player 面板）与进程内插件同步自己的全屏按钮状态。 */
+    publishEvent(PP_TOPIC_APP_FULLSCREEN, format("{\"fullscreen\":%d}", on ? 1 : 0).c_str());
+    PP_INFO("全屏: %s", on ? "开" : "关");
+    return true;
+}
+
 /* ======================= 媒体 ======================= */
 
 bool App::openMedia(const std::string& path) {
@@ -633,12 +653,10 @@ void App::handleKey(const SDL_Event& e) {
     switch (ke.keycode) {
         case SDLK_ESCAPE:
         case SDLK_Q:
-            if (fullscreen_) {
-                SDL_SetWindowFullscreen(win_, false);
-                fullscreen_ = false;
-            } else {
-                quit_ = true;
-            }
+            /* 走 setFullscreen() 而不是直接改 fullscreen_：统一入口会顺带广播
+             * app.fullscreen 事件，外部 UI 才能跟上"ESC 退出全屏"这一步。 */
+            if (fullscreen_) setFullscreen(false);
+            else             quit_ = true;
             break;
         case SDLK_SPACE:
             player_.togglePause();
@@ -666,8 +684,7 @@ void App::handleKey(const SDL_Event& e) {
             break;
         }
         case SDLK_F:
-            fullscreen_ = !fullscreen_;
-            SDL_SetWindowFullscreen(win_, fullscreen_);
+            setFullscreen(!fullscreen_);
             break;
         case SDLK_H:
             showHelp_ = !showHelp_;

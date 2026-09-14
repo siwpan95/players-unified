@@ -317,8 +317,14 @@ int revoked = host->revokeAll(slot);   // 撤销该插件的全部注册
 ```
 
 方法一览：`auth`、`ping`、`player.info|stats|play|pause|toggle|stop|seek|volume|mute|speed|open`、
-`command.invoke|list`、`service.list`、`plugin.list`、`topic.subscribe`（`"*"` 订阅全部）、`app.quit`、
+`command.invoke|list`、`service.list`、`plugin.list`、`topic.subscribe`（`"*"` 订阅全部）、
+`app.quit`、`app.fullscreen`（Phase 4 / S3：全屏切换）、
 `player.tracks|select_track`、`audio.devices|set_device`（P1-d：多轨 + 音频设备选择）。
+
+`app.fullscreen`：`params {"value": 0|1}` 设为指定状态；省略或给 `-1` 则取反。
+成功时返回 `{"fullscreen":0|1}` 并广播 `app.fullscreen` 事件（快捷键 F / ESC 也会触发同一入口，
+外部 UI 据此同步自己的全屏按钮）。`--hidden` 下没有可见窗口，返回 `ok:false`
+而不是假装成功 —— 需要无人值守又能全屏时请用可见窗口启动。
 
 宿主事件统一经 `Host::publishTopic()` 发出：既分发给进程内订阅者，也同步转发给
 **已认证的**控制通道客户端。

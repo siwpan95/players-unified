@@ -207,7 +207,8 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
     - `getState()` 与 `VlcPlayerEngine` 产出**同一个 PlayerState**（符合 schema）→ 换内核不动 UI 得到实测验证。
   - **形态 A 面板** `daily_player/spike_panel.py`：控制逻辑（`PanelController`）与 tkinter 分离，可无 GUI 回归（`tests/test_spike_panel.py` 14 项全绿）。窗口为「控制面板 + 播放器窗口」两个——单窗口需 S2。
   - **localplayer 端不成立，维持搁置**：MV3 扩展无 Node 运行时（Cordis 要求 Node ≥ 22）且无法承载原生 FFmpeg；若要让 PluginPlayer 当它的内核，需 PluginPlayer 学会推流（从播放器变服务器）并使扩展失去「离线免后端」特性。引入 MediaMTX 亦属多余（只转封装不转码）。
-  - 剩余缺口（均非阻塞）：控制通道**没有全屏/窗口方法**（S3）、画面无法嵌入外部窗口（S2，需改 C++ 用 `SDL_CreateWindowFrom`）、播放列表需 UI 侧自建、分发需带预编译 exe。详见评估文档 §9。
+  - **S3（全屏）已补齐**：新增 `app.fullscreen` 方法（`{"value":0|1}` 设值 / `-1` 取反）+ `app.fullscreen` 事件；快捷键 F / ESC 收敛到同一个 `App::setFullscreen()` 入口（原来各自改 `fullscreen_` 不发事件）。`--hidden` 下明确返回失败而非假装成功。适配器新增 `setFullscreen()`，`getState().fullscreen` 由事件校正（能反映"用户在播放器窗口按 F"）。实测 6 项全绿，官方 `tools/rpc_client.py` **24/24**。详见评估文档 §10。
+  - 剩余缺口（均非阻塞）：画面无法嵌入外部窗口（S2，需改 C++ 用 `SDL_CreateWindowFrom`）、播放列表需 UI 侧自建、分发需带预编译 exe。详见评估文档 §9。
 
 ## 8. 风险与未决
 

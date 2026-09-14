@@ -606,6 +606,18 @@ std::string RpcServer::handleRequest(const std::string& line, const std::shared_
         return ok(format("{\"subscribed\":\"%s\"}", jsonEscape(t).c_str()));
     }
 
+    /* Phase 4 / S3：全屏切换（外部 UI 经控制通道驱动播放器时需要）。
+     *   params: {"value": 0|1}  给出 → 设为指定状态；省略或给 -1 → 切换。
+     *   --hidden（无可见窗口）下返回失败，不做"假装成功"。 */
+    if (method == "app.fullscreen") {
+        if (!app) return err("app 未就绪");
+        double v = jsonGetNumber(params, "value", -1);
+        bool on = (v >= 0) ? (v != 0) : !app->fullscreen();
+        if (!app->setFullscreen(on))
+            return err("切换全屏失败（--hidden 模式下无可见窗口）");
+        return ok(format("{\"fullscreen\":%d}", on ? 1 : 0));
+    }
+
     if (method == "app.quit") {
         if (app) app->requestQuit();
         return ok("{\"quitting\":true}");

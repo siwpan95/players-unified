@@ -186,7 +186,7 @@ Redis 分布式集群代理（README L186 已定性）。本地单用户播放�
 | **S0** | 补 `daily_player/player_engine_rpc.py`：Python 版控制通道 `PlayerEngine` 适配器（对齐现有 JS 版） | ✅ **已完成**（v0.4.0）。协议级测试：真 TCP 假控制通道，覆盖 auth/换算/夹取/事件帧干扰/错令牌 |
 | **S1** | 形态 A 尖峰：起 `pluginplayer.exe --hidden --rpc-port`，用最小 tkinter 面板驱动播放 | ✅ **已完成**（v0.5.0）。**13 项断言全绿**，实测数据见 §8；另附无 GUI 回归 14 项 |
 | **S2** | 若必须单窗口：给 PluginPlayer 加 `--embed <hwnd>`（`SDL_CreateWindowFrom`） | ⏸ 未启动。**仅在"必须单窗口"时才需要**——S1 证明双窗口形态已可用，故降级为可选 |
-| **S3** | 补齐 RPC 缺口：`app.fullscreen`（或原生插件命令兜底） | ⏸ 未启动。唯一影响：daily_player 的全屏按钮对 PluginPlayer 内核无效（本地跟踪，不报错） |
+| **S3** | 补齐 RPC 缺口：`app.fullscreen`（或原生插件命令兜底） | ✅ **已完成**（v0.6.0）。真实切换 + 事件广播 + `--hidden` 下明确失败，实测见 §10 |
 | **搁置** | localplayer 引入 Cordis / MediaMTX | 运行时不兼容 / 场景不匹配；若将来接直播源再按 README L193 触发 |
 
 ---
@@ -303,5 +303,46 @@ F:/Python314/python.exe daily_player/spike_s1.py
 |---|---|
 | 内核替换可行吗？ | ✅ **可行且已跑通**，不是纸面结论 |
 | 需要立刻做 S2（单窗口嵌入）吗？ | ⏸ **不必**。双窗口形态功能完整；S2 只在"必须单窗口"时才值得动 C++ 重编译 |
-| daily_player 现在就可以默认切到 PluginPlayer 吗？ | ⚠️ **还早**。缺 `app.fullscreen`、播放列表需 UI 侧自建、分发要带预编译 exe；建议先保持双内核可切换 |
+| daily_player 现在就可以默认切到 PluginPlayer 吗？ | ⚠️ **还差一点**。~~缺 `app.fullscreen`~~ → **S3 已补齐**；剩余：播放列表需 UI 侧自建、分发要带预编译 exe。建议先保持双内核可切换 |
 | localplayer 端？ | ⏸ 维持搁置 |
+
+---
+
+## 10. S3 实测：`app.fullscreen`（2026-09-15，通过）
+
+### 10.1 改了什么
+
+| 文件 | 改动 |
+|---|---|
+| `src/core/app.h` | 新增 public `setFullscreen(bool)` / `fullscreen()`。注释写明这是**唯一入口** |
+| `src/core/app.cpp` | 实现 `setFullscreen()`；**快捷键 F 与 ESC 也改为走这个入口**（原来是各自直接改 `fullscreen_`） |
+| `src/sdk/player_plugin.h` | 新增 `PP_TOPIC_APP_FULLSCREEN` = `"app.fullscreen"` |
+| `src/core/control.cpp` | 新增 `app.fullscreen` 方法：`{"value":0\|1}` 设值，省略/`-1` 取反 |
+| `tools/rpc_client.py` | 加 1 项检查（23 → **24**，实测 24/24 通过） |
+| `daily_player/player_engine_rpc.py` | 新增 `setFullscreen()` / `toggleFullscreen()`；`getState()` 用事件校正 `fullscreen` |
+
+**设计要点**：统一入口不是洁癖。原来 F 键改 `fullscreen_` 但不发事件，外部 UI 无从得知用户按了 F；
+现在两条路径都发 `app.fullscreen` 事件，daily_player 面板的全屏按钮才能跟上。
+
+**`--hidden` 明确失败而非假装成功**：无人值守模式没有可见窗口，切全屏查不出也看不见。
+返回 `ok:false` 让调用方立刻知道没生效 —— 已写进 `spike_s1.py` 的断言。
+
+### 10.2 实测结果（`spike_s1.py` 第 8 组，重编译后的真实 exe）
+
+| 断言 | 结果 |
+|---|---|
+| `--hidden` 下 `setFullscreen` 明确失败 | ✅ `切换全屏失败（--hidden 模式下无可见窗口）` |
+| 可见窗口 `app.fullscreen(value=1)` | ✅ `{"fullscreen": 1}` |
+| 收到 `app.fullscreen` 事件 | ✅ `{'topic': 'app.fullscreen', 'data': {'fullscreen': 1}}` |
+| `app.fullscreen(value=0)` 退出 | ✅ `{"fullscreen": 0}` |
+| 适配器 `setFullscreen(True)` → `getState().fullscreen` | ✅ `True` |
+| 适配器 `setFullscreen(False)` → `getState().fullscreen` | ✅ `False` |
+
+官方客户端 `tools/rpc_client.py`：**24/24**（新增 1 项，其余 23 项无回归）。
+
+### 10.3 构建环境备注
+
+players-unified 的 `.gitignore` 排除了 `dist/` 与 `vendor/`，所以构建产物与依赖不在仓库里。
+本次复现用的是：`vendor/` 目录联接到原仓库 `G:\repos\pluginplayer\vendor`，
+`dist/` 从原仓库拷一份（59 文件），再 `F:/Python314/python.exe build.py --core`（g++ 16.1.0，57.4s）。
+`vendor/` 与 `dist/` 均被忽略，不会进版本库。

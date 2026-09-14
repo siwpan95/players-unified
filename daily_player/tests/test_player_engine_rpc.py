@@ -47,6 +47,8 @@ class FakeControlServer:
         self.stats = stats or dict(STATS)
         self.calls = []
         self.push_event = None          # 若设置，每次响应前先推一帧事件
+        self.fullscreen = False         # 服务端侧的真实全屏状态（S3）
+        self.fullscreen_error = None    # 置为字符串 → app.fullscreen 返回 ok:false
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._sock.bind(('127.0.0.1', 0))
@@ -96,7 +98,15 @@ class FakeControlServer:
                     self._err(conn, mid, '未认证：请先发送 auth')
                 else:
                     self.calls.append((method, params))
-                    self._ok(conn, mid, self._result(method))
+                    res = self._result(method, params)
+                    if isinstance(res, tuple) and res and res[0] == '__err__':
+                        self._err(conn, mid, res[1])
+                        continue
+                    # 真实服务端切全屏成功后会广播 app.fullscreen 事件
+                    if method == 'app.fullscreen':
+                        self._send_event(conn, 'app.fullscreen',
+                                         {'fullscreen': 1 if self.fullscreen else 0})
+                    self._ok(conn, mid, res)
         except (OSError, ValueError):
             pass
         finally:
@@ -111,7 +121,11 @@ class FakeControlServer:
     def _err(self, conn, mid, error):
         conn.sendall((json.dumps({'id': mid, 'ok': False, 'error': error}) + '\n').encode('utf-8'))
 
-    def _result(self, method):
+    def _send_event(self, conn, topic, data):
+        conn.sendall((json.dumps({'event': topic, 'data': data}) + '\n').encode('utf-8'))
+
+    def _result(self, method, params=None):
+        params = params or {}
         if method == 'player.stats':
             return self.stats
         if method == 'player.open':
@@ -120,6 +134,18 @@ class FakeControlServer:
             return {'paused': 0, 'position': 0.0}
         if method == 'command.invoke':
             return 0
+        # S3：app.fullscreen —— 语义与 src/core/control.cpp 保持一致
+        #   value >= 0 → 设为指定值；value < 0 → 取反
+        if method == 'app.fullscreen':
+            if self.fullscreen_error:
+                return ('__err__', self.fullscreen_error)
+            try:
+                v = float(params.get('value', -1))
+            except (TypeError, ValueError):
+                v = -1.0
+            on = (v != 0) if v >= 0 else (not self.fullscreen)
+            self.fullscreen = bool(on)
+            return {'fullscreen': 1 if on else 0}
         return {}
 
     def has(self, method, params=None):
@@ -192,7 +218,18 @@ def main():
         assert srv.has('command.invoke', {'name': 'snapshot', 'args': [r'C:\media']}), \
             'snapshot 应调 command.invoke(snapshot, [dir])'
 
-        # getState：由 stats 映射 + 本地跟踪的 volume/muted
+        # ---- S3：app.fullscreen ----
+        eng.setFullscreen(True)
+        assert srv.has('app.fullscreen', {'value': 1}), 'setFullscreen(True) → value=1'
+        assert srv.fullscreen is True, '服务端应真的切到全屏'
+        eng.setFullscreen(False)
+        assert srv.has('app.fullscreen', {'value': 0}), 'setFullscreen(False) → value=0'
+        assert srv.fullscreen is False
+        eng.toggleFullscreen()
+        assert srv.has('app.fullscreen', {'value': -1}), 'toggleFullscreen → value=-1（服务端取反）'
+        assert srv.fullscreen is True, 'value=-1 时服务端应取反（False→True）'
+
+        # getState：由 stats 映射 + 本地跟踪的 volume/muted + 事件校正的 fullscreen
         st = eng.getState()
         assert_state_schema(st)
         assert st['playing'] is True, 'paused=0 → playing true'
@@ -201,7 +238,7 @@ def main():
         assert st['rate'] == 1.5, 'rate 应取 stats.speed'
         assert st['volume'] == 42, 'volume 应取本地跟踪值'
         assert st['muted'] is True, 'muted 应取本地跟踪值'
-        assert st['fullscreen'] is False, 'fullscreen 默认 False（RPC 无对应能力）'
+        assert st['fullscreen'] is True, 'fullscreen 应跟上 setFullscreen / 事件校正的结果'
 
         # 额外能力
         eng.stop()
@@ -235,6 +272,38 @@ def main():
         assert raised, '错误令牌应抛 RpcError'
     finally:
         srv3.close()
+
+    # ---- S3：事件校正 —— 用户直接在播放器窗口按 F，适配器也要知道 ----
+    srv5 = FakeControlServer(token='t')
+    try:
+        eng5 = PluginPlayerRpcEngine.connect(port=srv5.port, token='t')
+        assert eng5.getState()['fullscreen'] is False, '初始应为非全屏'
+        srv5.fullscreen = True
+        srv5.push_event = {'event': 'app.fullscreen', 'data': {'fullscreen': 1}}
+        st5 = eng5.getState()
+        assert st5['fullscreen'] is True, 'app.fullscreen 事件应校正 getState 的全屏状态'
+        srv5.push_event = None
+        srv5.fullscreen = False
+        srv5.push_event = {'event': 'app.fullscreen', 'data': {'fullscreen': 0}}
+        assert eng5.getState()['fullscreen'] is False, '退出全屏事件也应同步'
+    finally:
+        srv5.close()
+
+    # ---- S3：--hidden（无可见窗口）→ 应抛 RpcError，不能假装成功 ----
+    srv6 = FakeControlServer(token='t')
+    srv6.fullscreen_error = '切换全屏失败（--hidden 模式下无可见窗口）'
+    try:
+        eng6 = PluginPlayerRpcEngine.connect(port=srv6.port, token='t')
+        raised = False
+        try:
+            eng6.setFullscreen(True)
+        except RpcError as e:
+            raised = True
+            assert '全屏' in str(e), f'错误信息应说明是全屏失败，实际: {e}'
+        assert raised, '--hidden 下 setFullscreen 应抛 RpcError 而不是静默成功'
+        assert eng6.getState()['fullscreen'] is False, '失败时不应把本地状态改成 True'
+    finally:
+        srv6.close()
 
     # ---- duration=0 → durationMs=None；paused=1 → playing=False ----
     srv4 = FakeControlServer(token='t', stats={'position': 0, 'duration': 0, 'speed': 0, 'paused': 1})

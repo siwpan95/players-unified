@@ -180,6 +180,23 @@ def main():
     step("player.speed", lambda: p.call("player.speed", value=1.5))
     step("player.speed 1.0", lambda: p.call("player.speed", value=1.0))
 
+    # ---------------- S3：全屏 ----------------
+    def app_fullscreen():
+        """切一次再立刻还原，别把用户窗口留在全屏。
+
+        --hidden（无人值守）实例没有可见窗口，服务端会**明确返回失败** ——
+        那也是正确行为（方法存在 + 拒绝而不是假装成功），这里记为跳过而非失败。"""
+        r = p.call("app.fullscreen", value=1)
+        if r.get("ok"):
+            p.call("app.fullscreen", value=0)
+            return r["result"]
+        err = r.get("error") or ""
+        if "全屏" in err:
+            return {"skipped": True, "reason": err}
+        raise AssertionError(f"app.fullscreen 意外失败: {r}")
+
+    step("app.fullscreen", app_fullscreen)
+
     step("command.list", lambda: {"count": p.call("command.list")["result"]["count"]})
     step("command.invoke stats", lambda: p.call("command.invoke", name="stats"))
     step("command.invoke effect.set gray", lambda: p.call("command.invoke", name="effect.set", args=["gray"]))

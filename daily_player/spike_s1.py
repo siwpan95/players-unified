@@ -13,6 +13,7 @@
 5. 截图链路：command.invoke(snapshot) → 是否真的落盘 PNG（含写入白名单验证）
 6. 控制类：seek / speed / volume / mute / pause 的往返正确性
 7. 端口契约：getState() 是否符合 schema/media-item.schema.json 的 PlayerState
+8. S3 全屏：`app.fullscreen` 真实切换 + `app.fullscreen` 事件 + `--hidden` 下明确失败
 
 用法
 ----
@@ -286,6 +287,74 @@ class Spike:
         self.check('截图落盘（--write-dir 生效）', bool(new) and size > 0,
                    f'新文件={new} 大小={size}B')
 
+    def measure_fullscreen(self):
+        """S3：验证 `app.fullscreen` 真的能切，且 --hidden 下明确失败。"""
+        print('\n[8] S3 全屏（app.fullscreen）')
+
+        # 8a. 当前实例是 --hidden：没有可见窗口，必须**明确失败**而不是假装成功
+        try:
+            self.engine.setFullscreen(True)
+            self.check('--hidden 下 setFullscreen 应失败', False, '竟然返回成功')
+        except RpcError as e:
+            self.check('--hidden 下 setFullscreen 明确失败', '全屏' in str(e), str(e))
+
+        # 8b. 另起一个**可见窗口**实例，验证真的能切 + 能收到 app.fullscreen 事件。
+        #     这一步会短暂弹出一个 320x200 的窗口（验证完立即 app.quit）。
+        port = free_port()
+        token = 's3-full-' + str(int(time.time())) + '-0123456789'
+        logp = os.path.join(self.args.out, 'player-visible.log')
+        fp = open(logp, 'wb')
+        cmd = [self.args.exe, '--size', '320x200',
+               '--rpc-port', str(port), '--rpc-token', token,
+               '--write-dir', self.args.out, '--log-level', '2']
+        proc = subprocess.Popen(cmd, cwd=os.path.dirname(self.args.exe),
+                                stdout=fp, stderr=subprocess.STDOUT)
+        rpc = None
+        try:
+            if not wait_port(port):
+                self.check('可见窗口实例控制通道', False, f'端口 {port} 未起来，日志见 {logp}')
+                return
+            rpc = ControlChannel(port=port, token=token, timeout=self.args.timeout)
+            rpc.connect()
+            eng = PluginPlayerRpcEngine(rpc)
+            try:
+                rpc.subscribe('app.fullscreen')
+
+                r = rpc.call('app.fullscreen', {'value': 1}) or {}
+                self.check('可见窗口 app.fullscreen(value=1)', r.get('fullscreen') == 1, str(r))
+
+                got, end = [], time.time() + 2.0
+                while time.time() < end and not got:
+                    rpc.pump(0.05)
+                    got = rpc.takeEvents('app.fullscreen')
+                    if not got:
+                        time.sleep(0.05)
+                self.check('收到 app.fullscreen 事件',
+                           bool(got) and (got[0].get('data') or {}).get('fullscreen') == 1,
+                           str(got[:1]))
+
+                r = rpc.call('app.fullscreen', {'value': 0}) or {}
+                self.check('app.fullscreen(value=0) 退出全屏', r.get('fullscreen') == 0, str(r))
+
+                # 走适配器（而不是裸 RPC）：setFullscreen → getState 应反映真实状态
+                eng.setFullscreen(True)
+                st = eng.getState()
+                self.check('引擎 setFullscreen → getState.fullscreen=True',
+                           st.get('fullscreen') is True, str(st.get('fullscreen')))
+                eng.setFullscreen(False)
+                self.check('引擎 setFullscreen(False) → getState.fullscreen=False',
+                           eng.getState().get('fullscreen') is False)
+
+                rpc.call('app.quit')
+            finally:
+                rpc.close()
+        finally:
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+            fp.close()
+
     def measure_contract(self):
         print('\n[7] getState() 是否符合 PlayerState schema')
         sys.path.insert(0, os.path.join(ROOT, 'schema'))
@@ -319,6 +388,7 @@ class Spike:
             self.measure_subtitle()
             self.measure_snapshot()
             self.measure_contract()
+            self.measure_fullscreen()
         finally:
             self.results['elapsedSec'] = round(time.time() - t0, 2)
             if not self.args.keep:

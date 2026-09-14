@@ -25,6 +25,14 @@ public:
     bool openMedia(const std::string& path);
     void requestQuit() { quit_ = true; }
 
+    /* Phase 4 / S3：全屏。快捷键 F / ESC 与控制通道 app.fullscreen **共用这一个入口**，
+     * 避免"两条路径各改一份 fullscreen_"导致状态与真实窗口不一致。 */
+    /** 切换全屏：on=true 进入、false 退出。返回是否成功。
+     *  --hidden（窗口被创建为 SDL_WINDOW_HIDDEN）下没有可见窗口，切全屏无意义，
+     *  返回 false 而不是假装成功 —— 外部 UI 需要能区分"切了但没生效"。 */
+    bool setFullscreen(bool on);
+    bool fullscreen() const { return fullscreen_; }
+
     /** 正常播放主循环。 */
     void run();
 

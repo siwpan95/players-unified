@@ -6,27 +6,27 @@
   "abi": 3,
   "latency.ping": {
     "n": 30,
-    "avgMs": 16.666,
-    "p50Ms": 16.653,
-    "p95Ms": 16.825,
-    "maxMs": 16.832,
-    "minMs": 16.528
+    "avgMs": 16.658,
+    "p50Ms": 16.67,
+    "p95Ms": 16.844,
+    "maxMs": 16.859,
+    "minMs": 16.292
   },
   "ping p95 < 200ms": {
     "ok": true,
-    "detail": "p95=16.825ms"
+    "detail": "p95=16.844ms"
   },
   "latency.player.stats": {
     "n": 30,
-    "avgMs": 16.695,
-    "p50Ms": 16.674,
-    "p95Ms": 17.004,
-    "maxMs": 17.544,
-    "minMs": 16.398
+    "avgMs": 16.671,
+    "p50Ms": 16.667,
+    "p95Ms": 16.957,
+    "maxMs": 17.032,
+    "minMs": 16.367
   },
   "player.stats p95 < 200ms": {
     "ok": true,
-    "detail": "p95=17.004ms"
+    "detail": "p95=16.957ms"
   },
   "mediaInfo": {
     "path": "G:\\repos\\pluginplayer\\dist\\test_assets\\sample.mp4",
@@ -49,16 +49,16 @@
     "detail": "1280x720 h264 dur=8.0s"
   },
   "positions": [
-    0.416,
-    0.8,
-    1.166,
-    1.566,
-    1.933,
-    2.316
+    0.4,
+    0.767,
+    1.134,
+    1.5,
+    1.867,
+    2.234
   ],
   "播放进度推进": {
     "ok": true,
-    "detail": "samples=[0.416, 0.8, 1.166, 1.566, 1.933, 2.316]"
+    "detail": "samples=[0.4, 0.767, 1.134, 1.5, 1.867, 2.234]"
   },
   "seek(1000ms) 落到 ~1s": {
     "ok": true,
@@ -87,13 +87,13 @@
   },
   "snapshot": {
     "newFiles": [
-      "snapshot_0003.png"
+      "snapshot_0005.png"
     ],
     "bytes": 3687468
   },
   "截图落盘（--write-dir 生效）": {
     "ok": true,
-    "detail": "新文件=['snapshot_0003.png'] 大小=3687468B"
+    "detail": "新文件=['snapshot_0005.png'] 大小=3687468B"
   },
   "PlayerState 符合 schema": {
     "ok": true,
@@ -108,13 +108,37 @@
     "muted": true,
     "fullscreen": false
   },
-  "elapsedSec": 9.68,
+  "--hidden 下 setFullscreen 明确失败": {
+    "ok": true,
+    "detail": "切换全屏失败（--hidden 模式下无可见窗口）"
+  },
+  "可见窗口 app.fullscreen(value=1)": {
+    "ok": true,
+    "detail": "{'fullscreen': 1}"
+  },
+  "收到 app.fullscreen 事件": {
+    "ok": true,
+    "detail": "[{'topic': 'app.fullscreen', 'data': {'fullscreen': 1}}]"
+  },
+  "app.fullscreen(value=0) 退出全屏": {
+    "ok": true,
+    "detail": "{'fullscreen': 0}"
+  },
+  "引擎 setFullscreen → getState.fullscreen=True": {
+    "ok": true,
+    "detail": "True"
+  },
+  "引擎 setFullscreen(False) → getState.fullscreen=False": {
+    "ok": true,
+    "detail": ""
+  },
+  "elapsedSec": 10.69,
   "failures": [],
   "passed": true,
   "env": {
-    "exe": "G:\\repos\\pluginplayer\\dist\\pluginplayer.exe",
+    "exe": "G:\\repos\\players-unified\\pluginplayer\\dist\\pluginplayer.exe",
     "media": "G:\\repos\\pluginplayer\\dist\\test_assets\\sample.mp4",
-    "port": 13208,
+    "port": 4894,
     "outDir": "G:\\repos\\players-unified\\daily_player\\_s1_out"
   }
 }

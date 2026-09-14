@@ -488,13 +488,14 @@ pluginplayer/
   这一项立刻报 `0 帧` 红（已实测）；修好后是 `10 帧`。
 - 无视频轨的媒体（纯音频）**快速判失败**，不会硬等到 60 秒超时。
 
-### 3. 控制通道 `tools/rpc_client.py` —— 23/23 通过
+### 3. 控制通道 `tools/rpc_client.py` —— 24/24 通过
 
 ```
-=== 控制通道: 23/23 通过 ===
+=== 控制通道: 24/24 通过 ===
 （认证边界 ×2：错误令牌被拒 / 未认证调用被拒
   基本能力 ×6：ping / player.info / player.stats / topic.subscribe / service.list / plugin.list
   播放控制 ×6：pause / play / seek / position / volume / speed
+  全屏 ×1：app.fullscreen（--hidden 下记为跳过而非失败）
   命令 ×5：command.list / invoke stats / effect.set / effect.clear / hotkey.list / 不存在
   资源边界 ×2：超长报文被拒 / 并发连接上限）
 ```
