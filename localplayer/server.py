@@ -19,21 +19,15 @@ Flask 示例后端：为扩展的「模式 B」提供媒体文件与清单 API�
 """
 import os
 import json
-import hashlib
 from flask import Flask, send_from_directory, jsonify, request
 from flask_sock import Sock
+from media_lib import build_media_items
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 MEDIA_DIR = os.path.join(BASE, 'media')
 
 app = Flask(__name__)
 sock = Sock(app)
-
-MEDIA_TYPES = {
-    '.mp4': 'video', '.webm': 'video', '.mov': 'video', '.mkv': 'video',
-    '.mp3': 'audio', '.ogg': 'audio', '.wav': 'audio',
-    '.m4a': 'audio', '.aac': 'audio', '.flac': 'audio',
-}
 
 # ---------- 信令中继：单一发送端 + 单一观看端 ----------
 _peers = {'sender': None, 'viewer': None}
@@ -103,32 +97,11 @@ def ws_signaling(ws):
 
 @app.route('/api/list')
 def media_list():
-    """返回 media/ 目录下媒体的 MediaItem 清单（跨端共享契约，见 schema/media-item.schema.json）。"""
-    items = []
-    if os.path.isdir(MEDIA_DIR):
-        for fn in sorted(os.listdir(MEDIA_DIR)):
-            ext = os.path.splitext(fn)[1].lower()
-            mtype = MEDIA_TYPES.get(ext)
-            if mtype:
-                uri = request.host_url.rstrip('/') + '/media/' + fn
-                abs_uri = 'file://' + os.path.join(MEDIA_DIR, fn)
-                items.append({
-                    # ---- 规范 MediaItem 字段 ----
-                    'id': 'lp-' + hashlib.sha1(uri.encode('utf-8')).hexdigest()[:16],
-                    'uri': uri,
-                    'title': os.path.splitext(fn)[0],
-                    'artist': None,
-                    'kind': mtype,
-                    'durationMs': None,
-                    'source': 'remote',
-                    'subtitleTracks': [],
-                    'thumbnail': None,
-                    # ---- 过渡别名（兼容未迁移前端，未来阶段移除）----
-                    'name': fn,
-                    'type': mtype,
-                    'path': uri,
-                })
-    return jsonify(items)
+    """返回 media/ 目录下媒体的 MediaItem 清单（跨端共享契约，见 schema/media-item.schema.json）。
+
+    列表构建逻辑抽到 media_lib.build_media_items（纯函数，可单测，不依赖 Flask 上下文）。
+    """
+    return jsonify(build_media_items(MEDIA_DIR, request.host_url.rstrip('/')))
 
 
 @app.route('/media/<path:filename>')

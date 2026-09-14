@@ -151,11 +151,11 @@ interface CastTransport {
 | 端口 | 映射方式 |
 |---|---|
 | `PlayerEngine` | FFmpeg 解码 + SDL3 输出的宿主层，预期可包成 `PlayerEngine`。 |
-| `MediaSource` | ✅ 契约已定义：`src/sdk/player_plugin.h` 新增 `PP_MediaItem`（对齐 `schema/media-item.schema.json`）。未来「媒体源插件」产出 `PP_MediaItem[]` 即 `MediaSource` 端口实现。 |
+| `MediaSource` | ✅ 已落地：Cordis JS 插件 `host-js/plugins/media-library.mjs` 扫描目录产出 `MediaItem[]`（`source: 'plugin:media-library'`），并提供 `GET /api/library`、`POST /api/library/rescan` HTTP 接口（令牌鉴权）。SDK 侧 `PP_MediaItem` 继续作为 C ABI 镜像。 |
 | `SubtitleProvider` | 可作为 Cordis 插件（沿用现有 `PP_TOPIC_MEDIA_TRACKS` 事件）。 |
 | `CastTransport` | 可作为 Cordis 插件（未来）。 |
 
-> PluginPlayer 源码已并入 `pluginplayer/` 并实际阅读：当前**尚无媒体源插件**（C++ 引擎层以 `PP_MediaInfo` 承载当前媒体技术信息，媒体枚举/来源插件尚未实现）。已在 SDK 定义 `PP_MediaItem` 作为 `MediaItem` 的 C ABI 镜像；该结构体为新增、不修改任何已有 `PP_*` 字段，**无需递增 `PP_ABI_VERSION`**。
+> PluginPlayer 源码已并入 `pluginplayer/` 并实际阅读：C++ 引擎层以 `PP_MediaInfo` 承载当前媒体技术信息；媒体枚举/来源已通过 Cordis JS 插件 `media-library` 落地（扫描目录产出 `MediaItem[]`）。已在 SDK 定义 `PP_MediaItem` 作为 `MediaItem` 的 C ABI 镜像；该结构体为新增、不修改任何已有 `PP_*` 字段，**无需递增 `PP_ABI_VERSION`**。
 
 ---
 
@@ -194,7 +194,7 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
 ## 7. 路线图（规划，未排期）
 
 - **Phase 0**：定义领域模型 + 端口契约 + 本文档 + 三端源码物理整合进本仓库。✅ 已完成。
-- **Phase 1**：`MediaItem` schema 三端对齐（见 §6）。🔶 进行中 —— localplayer / daily_player 已落地，PluginPlayer 仅定义 SDK 契约（媒体源插件待实现）。
+- **Phase 1**：`MediaItem` schema 三端对齐（见 §6）。✅ 已完成 —— localplayer / daily_player / PluginPlayer 三端均落地「媒体源」产出 `MediaItem[]`；并各含 schema 断言测试（`daily_player/tests`、`localplayer/tests`、`pluginplayer/host-js/plugins/lib`），零三方依赖、直跑真实代码路径。
 - **Phase 2**：共享 UX 控制契约对齐（见 §5）。
 - **Phase 3**：统一启动器（聚合三端 `MediaSource`）。
 - **Phase 4（可选）**：探索跨宿主「引擎可替换」（如用 PluginPlayer 的 FFmpeg 引擎驱动 daily_player 的 UI）——仅作长期设想。
@@ -203,5 +203,5 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
 
 - 三端语言不同，只能共享 **schema/契约**，无法共享实现；适配器各自维护。
 - daily_player 无插件/无网络，其适配器需要新增最小抽象层（仅结构调整）。
-- PluginPlayer 内部接口**未探明**，§4 映射为推测，需读码回填。
+- PluginPlayer 内部接口已在 P0-1 读码探明并落地「媒体源」Cordis 插件（`media-library`），§4 映射已对齐；引擎层/UX（§5）快捷键等仍待补全。
 - 统一启动器若要真正播放跨端媒体，需解决「谁来解码」：本地路径在浏览器端无法直接 `file://` 播放（localplayer 走打包/远端，不直接播本地文件），这是跨端启动器的硬约束，Phase 3 需决策。
