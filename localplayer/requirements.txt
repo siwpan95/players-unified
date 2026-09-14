@@ -1,0 +1,9 @@
+# 可选后端依赖：当 popup.js 中 USE_FLASK_BACKEND = true 时，
+# 需要单独启动一个 Flask 服务来提供 /media/ 下的媒体文件与清单 API。
+# 仅使用「随扩展打包 + web_accessible_resources」模式时，本文件可忽略。
+# 注意：必须显式约束 Werkzeug，否则可能与新版 Flask 不兼容——
+# Flask 3.x 用到 Werkzeug 3.x 的 LocalProxy(unbound_message=...)，
+# Werkzeug 过旧（如 0.16.0）会导致 server.py 启动即崩溃。
+Flask>=3.0
+Werkzeug>=3.1
+flask-sock>=0.7

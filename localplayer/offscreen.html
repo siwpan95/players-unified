@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>offscreen</title>
+</head>
+<body>
+    <!-- 常驻音频（后台续播） -->
+    <audio id="bg"></audio>
+    <!-- 常驻视频：作为投送主运行时（隐藏，仅用于解码与 captureStream） -->
+    <video id="bgVideo" hidden playsinline></video>
+    <script src="offscreen.js"></script>
+</body>
+</html>

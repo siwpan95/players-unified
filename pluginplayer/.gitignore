@@ -1,0 +1,65 @@
+# ============================================================================
+# PluginPlayer .gitignore
+# ============================================================================
+
+# ---- 构建产物（可由 build.py 重新生成） ----
+/build/
+/dist/
+
+# ---- 第三方依赖与参考源码（体积大、可按 tools/fetch_deps.py 或 README 重新获取） ----
+/vendor/
+/_extract/
+/player/
+*.zip
+*.7z
+*.tar.gz
+*.tgz
+
+# ---- 本地基线备份（上线前 QA 抓的 dist 快照；升级依赖前的 vendor 备份） ----
+/_dist_baseline_backup/
+/_dist_broken_*/
+/_vendor_backup_*/
+/_vendor_backup*
+
+# ---- 依赖缓存（fetch_deps.py 的下载/解压中间目录） ----
+/_deps/
+
+# ---- 运行期产物 ----
+/logs/
+**/logs/
+*.log
+_*.log
+host-js/.state/
+host-js/node_modules/
+selftest_out/
+**/selftest_out/
+*.bmp
+
+# ---- 控制通道令牌（每次启动重新生成，绝不应入库） ----
+**/rpc-token.txt
+
+# ---- 临时/证据文件 ----
+__pycache__/
+*.py[cod]
+
+# ---- 生成的测试媒体（build.py / selftest.bat 用 ffmpeg 现生成，绝不应入库） ----
+/test_assets/
+_pt_*.txt
+_pt_*.ps1
+_build_*.txt
+_qa_*
+cr_*
+e7*
+e8*
+edge_*
+lk_*
+
+# ---- 编辑器/系统 ----
+.vs/
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+desktop.ini
+.DS_Store

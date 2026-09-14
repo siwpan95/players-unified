@@ -1,0 +1,17 @@
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# 媒体文件（用户自有内容，非项目源码，不纳入版本库；仅保留说明文档 media/README.md）
+/media/*
+!/media/README.md
+!/media/manifest.json
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/

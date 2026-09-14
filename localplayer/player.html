@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>轻量播放器 · 独立应用</title>
+    <link rel="stylesheet" href="popup.css">
+    <link rel="stylesheet" href="app-layout.css">
+</head>
+<body class="full-page">
+    <div class="player-container">
+        <h1>
+            🎬 轻量播放器
+            <span>独立应用</span>
+        </h1>
+
+        <!-- 媒体容器：视频或音频由 JS 动态切换显示 -->
+        <div class="media-wrapper" id="mediaWrapper">
+            <video id="player" controls preload="metadata" playsinline></video>
+        </div>
+
+        <!-- 额外控制：画中画（仅视频可用） + 网页投送 -->
+        <div class="extra-controls">
+            <button id="pipBtn" class="extra-btn" title="画中画（仅视频）" hidden>⧉ 画中画</button>
+            <button id="castBtn" class="extra-btn" title="网页投送（WebRTC 投到外部网页）">🔊 网页投送</button>
+        </div>
+
+        <!-- 播放列表工具：搜索 + 排序 -->
+        <div class="playlist-tools">
+            <input id="searchInput" class="search-input" type="text" placeholder="🔍 搜索…" />
+            <select id="sortSelect" class="sort-select" title="排序">
+                <option value="default">默认</option>
+                <option value="name">名称</option>
+                <option value="type">类型</option>
+            </select>
+        </div>
+
+        <!-- 后台音频状态面板（走 offscreen 时显示） -->
+        <div id="bgStatus" class="bg-status" hidden>
+            <span class="bg-icon">🎧</span>
+            <span id="bgTitle" class="bg-title">—</span>
+            <button id="bgToggle" class="bg-toggle" title="播放/暂停">⏸</button>
+            <input id="bgSeek" class="bg-seek" type="range" min="0" max="100" value="0" />
+        </div>
+
+        <div class="playlist-header">
+            <h2>📋 播放列表</h2>
+            <div class="file-count" id="fileCount">0 个文件</div>
+        </div>
+
+        <div class="playlist" id="playlist">
+            <!-- 播放列表由 JavaScript 动态渲染 -->
+        </div>
+
+        <div class="now-playing" id="nowPlaying">
+            <span class="label">🎵 当前播放：</span>
+            <span class="value" id="currentMediaName">—</span>
+        </div>
+    </div>
+
+    <!-- hls.js 本地打包（MV3 禁止运行时加载远程脚本），用于播放 .m3u8 -->
+    <script src="lib/hls.min.js"></script>
+    <!-- 最小插件接口（媒体源插件注册表），须先于 popup.js 加载 -->
+    <script src="plugins/plugin-api.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>

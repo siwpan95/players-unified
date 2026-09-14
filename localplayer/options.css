@@ -1,0 +1,125 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #0f0f12;
+    color: #eaeef2;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px;
+}
+.options-container {
+    width: 100%;
+    max-width: 560px;
+    background: #1c1c22;
+    border: 1px solid #2c2c34;
+    border-radius: 20px;
+    padding: 28px 28px 32px;
+    box-shadow: 0 25px 40px -12px rgba(0, 0, 0, 0.8);
+}
+h1 {
+    font-size: 1.4rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    color: #e6edf4;
+}
+.subtitle {
+    margin-top: 4px;
+    margin-bottom: 24px;
+    font-size: 0.85rem;
+    color: #8a97a8;
+}
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.field label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #b9c4d0;
+    letter-spacing: 0.3px;
+}
+.field input {
+    width: 100%;
+    background: #111118;
+    border: 1px solid #34343c;
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: #eaeef2;
+    font-size: 0.95rem;
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    outline: none;
+    transition: border-color 0.12s ease;
+}
+.field input:focus {
+    border-color: #3d6ea8;
+}
+.hint {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: #7e8b9c;
+}
+.hint code {
+    background: #2a2a32;
+    padding: 1px 6px;
+    border-radius: 6px;
+    color: #aac9ff;
+    font-size: 0.78rem;
+}
+.actions {
+    margin-top: 22px;
+    display: flex;
+    gap: 12px;
+}
+button {
+    background: #2e5590;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 11px 22px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s ease, transform 0.05s ease;
+}
+button:hover {
+    background: #356bb0;
+}
+button:active {
+    transform: translateY(1px);
+}
+button.ghost {
+    background: transparent;
+    border: 1px solid #3f4b5e;
+    color: #b0bed0;
+}
+button.ghost:hover {
+    background: #23232b;
+}
+.status {
+    margin-top: 18px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+}
+.status.ok {
+    background: #16331f;
+    color: #8fe6a8;
+    border: 1px solid #2c5c3a;
+}
+.status.err {
+    background: #3a1c1c;
+    color: #f0a3a3;
+    border: 1px solid #6c2e2e;
+}
+.status.info {
+    background: #16263a;
+    color: #aac9ff;
+    border: 1px solid #2e4b7c;
+}

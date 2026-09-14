@@ -1,0 +1,4 @@
+# daily_player dependencies (auto-generated 2026-08-20)
+Pillow
+pystray
+# vlc（本地程序 F:\VLC，非 pip 包；需 64 位版本以匹配 64 位 Python）

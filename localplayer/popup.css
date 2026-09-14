@@ -1,0 +1,288 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #0f0f12;
+    color: #eaeef2;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+.player-container {
+    max-width: 960px;
+    width: 100%;
+    background: #1c1c22;
+    border-radius: 24px;
+    padding: 24px 24px 28px;
+    box-shadow: 0 25px 40px -12px rgba(0, 0, 0, 0.8);
+    border: 1px solid #2c2c34;
+    transition: all 0.15s ease;
+}
+h1 {
+    font-size: 1.3rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    color: #b9c4d0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-left: 4px;
+}
+h1 span {
+    background: #2e4b7c;
+    color: #aac9ff;
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 30px;
+    letter-spacing: 0.3px;
+}
+.media-wrapper {
+    background: #000;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px #34343c;
+    margin-bottom: 22px;
+    aspect-ratio: 16 / 9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+video, audio {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: #000;
+    outline: none;
+}
+audio {
+    height: 54px;
+    width: 100%;
+    margin: 20px 0;
+}
+.playlist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 0 6px;
+}
+.playlist-header h2 {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #9aa6b5;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.file-count {
+    font-size: 0.8rem;
+    background: #2a2a32;
+    padding: 4px 12px;
+    border-radius: 30px;
+    color: #b0bed0;
+}
+.playlist {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: #3e3e4a #1c1c22;
+}
+.playlist::-webkit-scrollbar {
+    width: 6px;
+}
+.playlist::-webkit-scrollbar-track {
+    background: #1c1c22;
+    border-radius: 10px;
+}
+.playlist::-webkit-scrollbar-thumb {
+    background: #3e3e4a;
+    border-radius: 10px;
+}
+.playlist-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #23232b;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    border: 1px solid transparent;
+    font-size: 0.95rem;
+    color: #d4dee8;
+    user-select: none;
+}
+.playlist-item:hover {
+    background: #2d2d38;
+    border-color: #3f4b5e;
+}
+.playlist-item.active {
+    background: #1e3a5f;
+    border-color: #3d6ea8;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(61, 110, 168, 0.25);
+}
+.playlist-item .icon {
+    font-size: 1.2rem;
+    opacity: 0.75;
+    width: 24px;
+    text-align: center;
+}
+.playlist-item .name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.playlist-item .type-badge {
+    font-size: 0.65rem;
+    background: #35353f;
+    padding: 3px 9px;
+    border-radius: 30px;
+    color: #98a9bd;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 500;
+}
+.playlist-item.active .type-badge {
+    background: #2e5590;
+    color: #cfdeff;
+}
+.empty-msg {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c7a8a;
+    font-size: 0.95rem;
+    background: #1b1b22;
+    border-radius: 18px;
+    border: 1px dashed #34343c;
+}
+.now-playing {
+    margin-top: 18px;
+    padding: 12px 18px;
+    background: #16161d;
+    border-radius: 40px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+    color: #b0c0d0;
+    border: 1px solid #2a2a34;
+    word-break: break-all;
+}
+.now-playing .label {
+    color: #6f7f92;
+    font-weight: 400;
+    white-space: nowrap;
+}
+.now-playing .value {
+    color: #cfdef5;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.extra-controls {
+    display: flex;
+    justify-content: flex-end;
+    margin: -10px 4px 14px;
+}
+.extra-btn {
+    background: #23232b;
+    color: #b9c4d0;
+    border: 1px solid #34343c;
+    border-radius: 30px;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+.extra-btn:hover {
+    background: #2d2d38;
+    border-color: #3f4b5e;
+    color: #fff;
+}
+.extra-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: #1a1a20;
+    color: #6b7280;
+    border-color: #2a2a30;
+}
+.extra-btn:disabled:hover {
+    background: #1a1a20;
+    border-color: #2a2a30;
+    color: #6b7280;
+}
+.playlist-tools {
+    display: flex;
+    gap: 8px;
+    margin: 0 4px 12px;
+}
+.search-input {
+    flex: 1;
+    background: #23232b;
+    border: 1px solid #34343c;
+    border-radius: 10px;
+    padding: 8px 12px;
+    color: #eaeef2;
+    font-size: 0.85rem;
+    outline: none;
+}
+.search-input::placeholder { color: #6c7a8a; }
+.sort-select {
+    background: #23232b;
+    border: 1px solid #34343c;
+    border-radius: 10px;
+    padding: 8px 10px;
+    color: #eaeef2;
+    font-size: 0.85rem;
+    outline: none;
+}
+.bg-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 4px 12px;
+    padding: 10px 14px;
+    background: #16161d;
+    border: 1px solid #2a2a34;
+    border-radius: 14px;
+}
+.bg-status[hidden] { display: none; }
+.bg-icon { font-size: 1.1rem; }
+.bg-title {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #cfdef5;
+    font-size: 0.9rem;
+}
+.bg-toggle {
+    background: #2e4b7c;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    flex: none;
+}
+.bg-seek { flex: 1.4; accent-color: #3d6ea8; min-width: 80px; }
+@media (max-width: 600px) {
+    .player-container { padding: 16px; border-radius: 18px; }
+    .playlist-item { padding: 10px 14px; font-size: 0.85rem; }
+    .media-wrapper { border-radius: 14px; }
+}

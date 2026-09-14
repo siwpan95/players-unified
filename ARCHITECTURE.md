@@ -1,7 +1,7 @@
-# 整合骨架（规划文档 · 未实施）
+# players-unified 整合架构
 
-> 本文档定义 localplayer / PluginPlayer / daily_player 三端的整合骨架。
-> **状态：规划。** 仅确定领域模型、端口契约与映射，未对任一仓库编写/修改代码。
+> 本文档定义 localplayer / PluginPlayer / daily_player 三端的整合骨架与目录布局。
+> **状态：已整合（物理合并）。** 三端源码已作为子目录并入本仓库（见 §0），领域模型 + 端口契约（§2–§5）作为后续统一工作的设计基线。
 
 ---
 
@@ -11,13 +11,15 @@
 
 | 端 | 路径 | 形态 | 解码引擎 | UI | 媒体源 | 网络/投送 | 插件体系 |
 |---|---|---|---|---|---|---|---|
-| daily_player | `G:\repos\daily_player` | 桌面 App（Python exe） | libVLC | tkinter | 本地文件/文件夹 | 无 | 无 |
-| localplayer | `G:\local\localplayer` | 浏览器扩展（MV3） | 浏览器 `<video>`/hls.js | HTML/CSS/JS | 本地打包 + 远端 `server.py` | WebRTC 网页投送 | 最小 `plugin-api` |
-| PluginPlayer | `G:\local\pluginplayer` | 桌面 App（C++，cordis） | FFmpeg + SDL3 | SDL3 + Cordis JS | Cordis 媒体插件 | 插件可扩展 | 完整「一切皆插件」 |
+| daily_player | `daily_player/` | 桌面 App（Python exe） | libVLC | tkinter | 本地文件/文件夹 | 无 | 无 |
+| localplayer | `localplayer/` | 浏览器扩展（MV3） | 浏览器 `<video>`/hls.js | HTML/CSS/JS | 本地打包 + 远端 `server.py` | WebRTC 网页投送 | 最小 `plugin-api` |
+| PluginPlayer | `pluginplayer/` | 桌面 App（C++，cordis） | FFmpeg + SDL3 | SDL3 + Cordis JS | Cordis 媒体插件 | 插件可扩展 | 完整「一切皆插件」 |
+
+> 以上三个子目录即整合前的 `G:\repos\daily_player`、`G:\repos\localplayer`、`G:\repos\pluginplayer`，已整体复制进本仓库根目录，**不再跨仓库引用**。
 
 **整合原则**
 
-1. 三端语言/宿主不同（Python / JS / C++），**不做源码合并**。
+1. 三端语言/宿主不同（Python / JS / C++），**不做跨语言源码合并**；改为**物理整合**：三端源码作为独立子目录共存于本仓库，避免跨仓库引用（submodule / 外部路径依赖）。
 2. 统一「**领域模型 + 端口（Port）接口**」，各宿主实现对应的**适配器（Adapter）**。
 3. 优先统一复用率最高的点：**媒体枚举（MediaItem schema）**，其次统一 UX 控制契约。
 
@@ -129,7 +131,7 @@ interface CastTransport {
 | 端口 | 映射方式 |
 |---|---|
 | `PlayerEngine` | 把 `DailyPlayer.player`（libVLC `media_player`）包一层：`load`→`media_new`+`set_media`、`seek`→`set_time`、`snapshot`→`video_take_snapshot`、`getState`→`get_time/get_length/get_state`。 |
-| `MediaSource` | 新增 `LocalFileSource`：把现有「文件/文件夹选择」重构为返回 `MediaItem[]`（扫目录、按扩展名过滤、可选探时长）。 |
+| `MediaSource` | ✅ 已落地：`daily_player/media_source.py` 的 `LocalFileSource.list()` 返回 `MediaItem[]`（见 `schema/media-item.schema.json`）。`play.py` 既有 `open_folder` 行为未改（仅结构抽取，不动 libVLC）。 |
 | `SubtitleProvider` | 复用现有 `parse_srt()` + `video_set_spu()`。 |
 | `CastTransport` | 暂不支持（未来可加）。 |
 
@@ -146,14 +148,14 @@ interface CastTransport {
 > `server.py /api/list` 当前返回 `{name,type,path,tracks}`，已接近 `MediaItem`，仅缺 `id`/`artist`/`durationMs`，对齐成本低。
 
 ### PluginPlayer（C++ FFmpeg + SDL3 + Cordis）
-| 端口 | 映射方式（待探，未读其代码） |
+| 端口 | 映射方式 |
 |---|---|
 | `PlayerEngine` | FFmpeg 解码 + SDL3 输出的宿主层，预期可包成 `PlayerEngine`。 |
-| `MediaSource` | Cordis 媒体插件每个即一个 `MediaSource`（天然契合「一切皆插件」）。 |
-| `SubtitleProvider` | 可作为 Cordis 插件。 |
+| `MediaSource` | ✅ 契约已定义：`src/sdk/player_plugin.h` 新增 `PP_MediaItem`（对齐 `schema/media-item.schema.json`）。未来「媒体源插件」产出 `PP_MediaItem[]` 即 `MediaSource` 端口实现。 |
+| `SubtitleProvider` | 可作为 Cordis 插件（沿用现有 `PP_TOPIC_MEDIA_TRACKS` 事件）。 |
 | `CastTransport` | 可作为 Cordis 插件（未来）。 |
 
-> ⚠️ PluginPlayer 内部接口**尚未探明**，上表为合理推测；需读其代码后回填精确映射。
+> PluginPlayer 源码已并入 `pluginplayer/` 并实际阅读：当前**尚无媒体源插件**（C++ 引擎层以 `PP_MediaInfo` 承载当前媒体技术信息，媒体枚举/来源插件尚未实现）。已在 SDK 定义 `PP_MediaItem` 作为 `MediaItem` 的 C ABI 镜像；该结构体为新增、不修改任何已有 `PP_*` 字段，**无需递增 `PP_ABI_VERSION`**。
 
 ---
 
@@ -179,11 +181,11 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
 
 ## 6. 建议的第一步（低风险、高复用）
 
-**统一 `MediaItem` JSON schema**，让三端的媒体枚举都产出它：
+**统一 `MediaItem` JSON schema**，让三端的媒体枚举都产出它。规范定义见 [`schema/media-item.schema.json`](schema/media-item.schema.json)（Layer 0 契约，三端对齐基准）。
 
-1. **localplayer**：把 `server.py /api/list` 的返回补成 `MediaItem`（加 `id`/`artist`/`durationMs`，`type`→`kind`）。前端 `popup.js`/`plugin-api.js` 已能用。
-2. **daily_player**：新增 `LocalFileSource.list()`，把文件夹扫描结果包成 `MediaItem[]`。
-3. **PluginPlayer**：媒体插件输出 `MediaItem`（待读代码确认字段）。
+1. **localplayer**：✅ `server.py /api/list` 已产出 `MediaItem`（`id`/`uri`/`title`/`artist`/`kind`/`durationMs`/`source`/`subtitleTracks`/`thumbnail`）；`background.js` 的远端源适配器已透传规范字段（并保留 `name`/`type`/`path` 过渡别名以兼容 popup）。
+2. **daily_player**：✅ 新增 `media_source.py` 的 `LocalFileSource.list()` 返回 `MediaItem[]`（`play.py` 既有行为未改）。
+3. **PluginPlayer**：🔶 SDK（`src/sdk/player_plugin.h`）新增 `PP_MediaItem` 结构体对齐 schema；「媒体源插件」尚未实现，待 Phase 2 落地。
 
 完成后，可做一个**「统一启动器」**：聚合三端 `MediaSource.list()`，在一个界面里列出全部可播媒体。这是整合的第一个真正可用的跨端产物。
 
@@ -191,8 +193,8 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
 
 ## 7. 路线图（规划，未排期）
 
-- **Phase 0（当前）**：定义领域模型 + 端口契约 + 本文档。✅ 规划完成。
-- **Phase 1**：`MediaItem` schema 三端对齐（见 §6）。
+- **Phase 0**：定义领域模型 + 端口契约 + 本文档 + 三端源码物理整合进本仓库。✅ 已完成。
+- **Phase 1**：`MediaItem` schema 三端对齐（见 §6）。🔶 进行中 —— localplayer / daily_player 已落地，PluginPlayer 仅定义 SDK 契约（媒体源插件待实现）。
 - **Phase 2**：共享 UX 控制契约对齐（见 §5）。
 - **Phase 3**：统一启动器（聚合三端 `MediaSource`）。
 - **Phase 4（可选）**：探索跨宿主「引擎可替换」（如用 PluginPlayer 的 FFmpeg 引擎驱动 daily_player 的 UI）——仅作长期设想。

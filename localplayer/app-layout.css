@@ -1,0 +1,24 @@
+/* 侧边栏 / 全页应用布局：复用 popup.css 的组件样式，仅调整外框尺寸 */
+
+/* 侧边栏：铺满窗口高度，去掉圆角与阴影，常驻不随切标签关闭 */
+body.side-panel {
+    padding: 0;
+    align-items: stretch;
+    justify-content: flex-start;
+}
+body.side-panel .player-container {
+    max-width: none;
+    width: 100%;
+    min-height: 100vh;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+}
+
+/* 全页应用：居中、略宽，作为「独立插件应用」 */
+body.full-page {
+    padding: 24px;
+}
+body.full-page .player-container {
+    max-width: 1100px;
+}

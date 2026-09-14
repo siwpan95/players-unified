@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置 · 轻量播放器</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+    <div class="options-container">
+        <h1>⚙️ 设置</h1>
+        <p class="subtitle">轻量播放器 · 本地媒体</p>
+
+        <div class="field">
+            <label for="backendUrl">后端地址 (Backend URL)</label>
+            <input type="text" id="backendUrl" placeholder="http://127.0.0.1:5000" spellcheck="false" autocomplete="off">
+            <p class="hint">
+                background service worker 将从此地址拉取 <code>/api/list</code> 媒体清单。
+                留空或无效将回退到随扩展打包的本地媒体。
+            </p>
+        </div>
+
+        <div class="actions">
+            <button id="saveBtn">保存</button>
+            <button id="testBtn" class="ghost">测试连接</button>
+            <button id="resetBtn" class="ghost">恢复默认</button>
+        </div>
+
+        <div id="status" class="status" hidden></div>
+    </div>
+
+    <script src="options.js"></script>
+</body>
+</html>

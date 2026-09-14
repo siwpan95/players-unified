@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gitee.com/siwpan/players-unified/raw/main/schema/media-item.schema.json",
+  "title": "players-unified 跨端共享媒体契约（Layer 0）",
+  "description": "三端（daily_player / localplayer / PluginPlayer）媒体枚举均产出本契约定义的结构。详见 ARCHITECTURE.md §2。",
+  "definitions": {
+    "MediaItem": {
+      "type": "object",
+      "description": "单个可播放媒体的统一描述。",
+      "required": ["id", "uri", "title", "kind", "source"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "稳定标识（路径哈希或 URI），用于进度记忆/去重"
+        },
+        "uri": {
+          "type": "string",
+          "description": "可播放地址：本地绝对路径 或 http(s) URL"
+        },
+        "title": { "type": "string" },
+        "artist": {
+          "type": ["string", "null"],
+          "description": "音频/曲目用；未知为 null"
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["audio", "video"]
+        },
+        "durationMs": {
+          "type": ["number", "null"],
+          "description": "时长（毫秒）；未知为 null"
+        },
+        "source": {
+          "type": "string",
+          "description": "来源标识：local-file / bundled / remote / plugin:<name>"
+        },
+        "subtitleTracks": {
+          "type": "array",
+          "description": "字幕轨列表；无则空数组",
+          "items": {
+            "type": "object",
+            "required": ["id", "label"],
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "lang": { "type": ["string", "null"] },
+              "embedded": { "type": "boolean" }
+            }
+          }
+        },
+        "thumbnail": {
+          "type": ["string", "null"],
+          "description": "缩略图地址；无则 null"
+        }
+      }
+    },
+    "PlayerState": {
+      "type": "object",
+      "description": "播放器状态快照（Layer 0 契约，未来统一启动器聚合用）。",
+      "properties": {
+        "playing": { "type": "boolean" },
+        "timeMs": { "type": "number" },
+        "durationMs": { "type": ["number", "null"] },
+        "rate": { "type": "number", "description": "0.25..3" },
+        "volume": { "type": "number", "description": "0..100" },
+        "muted": { "type": "boolean" },
+        "fullscreen": { "type": "boolean" }
+      }
+    },
+    "Playlist": {
+      "type": "object",
+      "description": "播放列表（Layer 0 契约）。",
+      "properties": {
+        "items": { "type": "array", "items": { "$ref": "#/definitions/MediaItem" } },
+        "cursor": { "type": "number", "description": "当前索引" }
+      }
+    }
+  }
+}

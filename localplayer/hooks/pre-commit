@@ -1,0 +1,24 @@
+#!/bin/sh
+# 提交前自检：manifest.json 的 version 必须与 CHANGELOG.md 最新版本号一致
+# 本文件纳入版本管理（仓库内 hooks/pre-commit）；启用见 README「开发约定」。
+ROOT=$(git rev-parse --show-toplevel)
+PY=""
+if command -v python >/dev/null 2>&1; then PY=python
+elif command -v python3 >/dev/null 2>&1; then PY=python3
+elif command -v py >/dev/null 2>&1; then PY=py
+elif [ -f "F:/Python314/python.exe" ]; then PY="F:/Python314/python.exe"
+elif [ -f "/f/Python314/python.exe" ]; then PY="/f/Python314/python.exe"
+fi
+
+if [ -z "$PY" ]; then
+  echo "warning: 未找到 python，跳过版本自检（请手动运行 $ROOT/check_version.py）"
+  exit 0
+fi
+
+"$PY" "$ROOT/check_version.py"
+status=$?
+if [ "$status" -ne 0 ]; then
+  echo "提交被阻止：manifest 与 CHANGELOG 版本号不一致。请先对齐后再 commit。"
+  exit 1
+fi
+exit 0
