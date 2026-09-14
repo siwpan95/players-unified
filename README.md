@@ -1,6 +1,6 @@
 # players-unified
 
-> 版本 **0.1.2** · Phase 1（MediaItem 对齐）已完成 + 三端 schema 断言测试
+> 版本 **0.2.0** · Phase 1（MediaItem 对齐）+ Phase 2（PlayerEngine 对齐）均已完成
 
 本地三个播放器方向的**整合仓库**：三端源码已作为子目录并入本仓库根目录，统一承载、统一版本管理（不再跨仓库引用）。
 
@@ -18,6 +18,6 @@
 
 ## 状态
 
-✅ **已整合（物理合并）** · ✅ **Phase 1 已完成**。三端源码已复制进本仓库子目录；`MediaItem` 跨端共享契约已落地（`schema/media-item.schema.json`），localplayer / daily_player / PluginPlayer 三端均产出 `MediaItem[]`（PluginPlayer 通过 Cordis 插件 `media-library` 扫描目录 + HTTP `/api/library` 接口）。三端均含 `MediaItem` schema 断言测试（`daily_player/tests`、`localplayer/tests`、`pluginplayer/host-js/plugins/lib`），零三方依赖、直跑真实代码路径。详见 [ARCHITECTURE.md](ARCHITECTURE.md)。
+✅ **已整合（物理合并）** · ✅ **Phase 1 已完成**。三端源码已复制进本仓库子目录；`MediaItem` 跨端共享契约已落地（`schema/media-item.schema.json`），localplayer / daily_player / PluginPlayer 三端均产出 `MediaItem[]`（PluginPlayer 通过 Cordis 插件 `media-library` 扫描目录 + HTTP `/api/library` 接口）。三端均含 `MediaItem` schema 断言测试（`daily_player/tests`、`localplayer/tests`、`pluginplayer/host-js/plugins/lib`），零三方依赖、直跑真实代码路径。Phase 2 的 `PlayerEngine` 适配器亦已三端落地（`daily_player/player_engine.py`、`localplayer/player_engine.js`、`pluginplayer/host-js/player-engine.mjs`），并各含 `PlayerState` schema 断言测试。详见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
 > 说明：三端语言/宿主不同（Python / JS / C++），整合方式是**物理整合（子目录共存）**而非跨语言源码合并；统一层只共享 schema/契约，各端仍按各自技术栈独立演进。

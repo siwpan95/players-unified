@@ -130,7 +130,7 @@ interface CastTransport {
 ### daily_player（Python + libVLC）
 | 端口 | 映射方式 |
 |---|---|
-| `PlayerEngine` | 把 `DailyPlayer.player`（libVLC `media_player`）包一层：`load`→`media_new`+`set_media`、`seek`→`set_time`、`snapshot`→`video_take_snapshot`、`getState`→`get_time/get_length/get_state`。 |
+| `PlayerEngine` | ✅ 已落地：`daily_player/player_engine.py` 的 `VlcPlayerEngine`（依赖注入 instance+player，**不 import vlc** 以便单测）。`load`→`media_new`+`set_media`、`seek`→`set_time`（毫秒直通）、`snapshot`→`video_take_snapshot(0,path,0,0)`、`getState`→`get_time/get_length/get_state/get_rate/audio_get_volume`；rate 夹 0.25..3、volume 夹 0..100。 |
 | `MediaSource` | ✅ 已落地：`daily_player/media_source.py` 的 `LocalFileSource.list()` 返回 `MediaItem[]`（见 `schema/media-item.schema.json`）。`play.py` 既有 `open_folder` 行为未改（仅结构抽取，不动 libVLC）。 |
 | `SubtitleProvider` | 复用现有 `parse_srt()` + `video_set_spu()`。 |
 | `CastTransport` | 暂不支持（未来可加）。 |
@@ -140,7 +140,7 @@ interface CastTransport {
 ### localplayer（Chrome MV3 扩展）
 | 端口 | 映射方式 |
 |---|---|
-| `PlayerEngine` | offscreen 文档里的 `<video>`/`<audio>` 元素即引擎；`popup.js`/`player.js` 已封装 play/pause/seek/rate/volume。 |
+| `PlayerEngine` | ✅ 已落地：`localplayer/player_engine.js`（经典脚本，挂 `globalThis.LpPlayerEngine`）把 offscreen 的 `<video>`/`<audio>` 适配成端口；秒↔毫秒、`volume 0..1`↔`0..100` 换算在适配器内完成。**`snapshot()` 返回 false**（浏览器无法按路径落盘，与 §5 的 UX 表一致）。 |
 | `MediaSource` | 即 `plugins/plugin-api.collectMedia()` 的 fallback 链：本地打包源 + 「远端后端」源（`server.py /api/list`）。 |
 | `SubtitleProvider` | hls.js / 原生 `<track>` + `textTracks` 切换。 |
 | `CastTransport` | 已实现：offscreen `castStart`/`castStop` + WebRTC，`popup` 显示「投送中 · N 个接收端」。 |
@@ -150,7 +150,7 @@ interface CastTransport {
 ### PluginPlayer（C++ FFmpeg + SDL3 + Cordis）
 | 端口 | 映射方式 |
 |---|---|
-| `PlayerEngine` | FFmpeg 解码 + SDL3 输出的宿主层，预期可包成 `PlayerEngine`。 |
+| `PlayerEngine` | ✅ 已落地：`pluginplayer/host-js/player-engine.mjs` 的 `createPlayerEngine(ctx.player)`，把控制通道 RPC 适配成端口（`seek` 毫秒→秒、`volume` 0..100→0..1、`snapshot`→原生 `snapshot [dir]` 命令）。`volume/muted/fullscreen` 控制通道无 getter，由适配器本地跟踪。 |
 | `MediaSource` | ✅ 已落地：Cordis JS 插件 `host-js/plugins/media-library.mjs` 扫描目录产出 `MediaItem[]`（`source: 'plugin:media-library'`），并提供 `GET /api/library`、`POST /api/library/rescan` HTTP 接口（令牌鉴权）。SDK 侧 `PP_MediaItem` 继续作为 C ABI 镜像。 |
 | `SubtitleProvider` | 可作为 Cordis 插件（沿用现有 `PP_TOPIC_MEDIA_TRACKS` 事件）。 |
 | `CastTransport` | 可作为 Cordis 插件（未来）。 |
@@ -195,7 +195,7 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
 
 - **Phase 0**：定义领域模型 + 端口契约 + 本文档 + 三端源码物理整合进本仓库。✅ 已完成。
 - **Phase 1**：`MediaItem` schema 三端对齐（见 §6）。✅ 已完成 —— localplayer / daily_player / PluginPlayer 三端均落地「媒体源」产出 `MediaItem[]`；并各含 schema 断言测试（`daily_player/tests`、`localplayer/tests`、`pluginplayer/host-js/plugins/lib`），零三方依赖、直跑真实代码路径。
-- **Phase 2**：共享 UX 控制契约对齐（见 §5）。
+- **Phase 2**：共享 UX 控制契约对齐（见 §5）。✅ 已完成 —— 三端均落地 `PlayerEngine` 适配器（`daily_player/player_engine.py`、`localplayer/player_engine.js`、`pluginplayer/host-js/player-engine.mjs`），并各含 `PlayerState` schema 断言测试；能力差异（如 localplayer 不支持 `snapshot`）已在适配器 `capabilities` 中显式声明。
 - **Phase 3**：统一启动器（聚合三端 `MediaSource`）。
 - **Phase 4（可选）**：探索跨宿主「引擎可替换」（如用 PluginPlayer 的 FFmpeg 引擎驱动 daily_player 的 UI）——仅作长期设想。
 
