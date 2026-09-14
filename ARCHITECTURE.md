@@ -197,7 +197,10 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
 - **Phase 1**：`MediaItem` schema 三端对齐（见 §6）。✅ 已完成 —— localplayer / daily_player / PluginPlayer 三端均落地「媒体源」产出 `MediaItem[]`；并各含 schema 断言测试（`daily_player/tests`、`localplayer/tests`、`pluginplayer/host-js/plugins/lib`），零三方依赖、直跑真实代码路径。
 - **Phase 2**：共享 UX 控制契约对齐（见 §5）。✅ 已完成 —— 三端均落地 `PlayerEngine` 适配器（`daily_player/player_engine.py`、`localplayer/player_engine.js`、`pluginplayer/host-js/player-engine.mjs`），并各含 `PlayerState` schema 断言测试；能力差异（如 localplayer 不支持 `snapshot`）已在适配器 `capabilities` 中显式声明。
 - **Phase 3**：统一启动器（枚举聚合 + 深链跳转）。✅ 已完成 —— `launcher/server.mjs`（Node 零依赖 + `index.html` UI）聚合三端 `MediaSource.list()`，单个来源故障只降级为 error 不拖垮整体；`POST /api/open` 按来源端深链：PluginPlayer → 控制通道 `player.open`、localplayer → 浏览器打开远端 URL、daily_player → `spawn python play.py <path>`。端到端验证见 `launcher/tests/e2e.mjs`。
-- **Phase 4（可选）**：探索跨宿主「引擎可替换」（如用 PluginPlayer 的 FFmpeg 引擎驱动 daily_player 的 UI）——仅作长期设想。
+- **Phase 4（可选）**：跨宿主「引擎可替换」——用 PluginPlayer 的 FFmpeg 引擎驱动 daily_player 的 UI。🔶 评估已完成、S0 落地中：可行性评估见 [docs/phase4-kernel-assessment.md](docs/phase4-kernel-assessment.md)。结论要点：
+  - **daily_player 端可行**：PluginPlayer 已有 `--hidden` 无人值守模式（`src/core/main.cpp:11`）+ 完整控制通道，且 Phase 2 的 `PlayerEngine` 端口正是替换缝 → S0 已落地 `daily_player/player_engine_rpc.py`（与 `VlcPlayerEngine` 同一端口，UI 可不改切换）。
+  - **localplayer 端不成立，暂时搁置**：MV3 扩展无 Node 运行时（Cordis 要求 Node ≥ 22）且无法承载原生 FFmpeg；若要让 PluginPlayer 当它的内核，需 PluginPlayer 学会推流（从播放器变服务器）并使扩展失去「离线免后端」特性。引入 MediaMTX 亦属多余（只转封装不转码）。
+  - 已知缺口：控制通道**没有全屏/窗口方法**，画面也无法嵌入外部窗口（需改 C++ 用 `SDL_CreateWindowFrom`），详见评估文档 §2.3 / §4。
 
 ## 8. 风险与未决
 
