@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>players-unified · 统一启动器</title>
+<style>
+  :root { --bg:#f7f8fa; --card:#fff; --fg:#1f2328; --muted:#656d76; --line:#d8dee4; --accent:#0969da; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; }
+  header { padding:16px 20px; border-bottom:1px solid var(--line); background:var(--card); }
+  h1 { margin:0; font-size:1.05rem; font-weight:600; }
+  .sub { margin-top:4px; font-size:.8rem; color:var(--muted); }
+  main { padding:16px 20px 40px; max-width:1100px; }
+  .bar { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+  button { background:var(--card); border:1px solid var(--line); border-radius:6px;
+           padding:6px 14px; font-size:.85rem; cursor:pointer; color:var(--fg); }
+  button:hover { border-color:var(--accent); color:var(--accent); }
+  .srcs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; font-size:.78rem; }
+  .tag { border:1px solid var(--line); border-radius:999px; padding:3px 10px; background:var(--card); }
+  .tag.ok { border-color:#1a7f37; color:#1a7f37; }
+  .tag.err { border-color:#cf222e; color:#cf222e; }
+  table { width:100%; border-collapse:collapse; background:var(--card);
+          border:1px solid var(--line); border-radius:8px; overflow:hidden; font-size:.86rem; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); }
+  th { background:#f0f2f5; font-weight:600; font-size:.8rem; color:var(--muted); }
+  tr:last-child td { border-bottom:none; }
+  tr.clickable { cursor:pointer; }
+  tr.clickable:hover { background:#eef4ff; }
+  .kind { font-size:.72rem; padding:1px 7px; border-radius:4px; border:1px solid var(--line); color:var(--muted); }
+  .uri { color:var(--muted); font-size:.74rem; word-break:break-all; }
+  .msg { margin-top:12px; font-size:.82rem; color:var(--muted); min-height:1.2em; }
+  .err { color:#cf222e; }
+</style>
+</head>
+<body>
+<header>
+  <h1>players-unified · 统一启动器</h1>
+  <div class="sub">枚举聚合三端 MediaSource + 点击深链跳转（Phase 3）</div>
+</header>
+<main>
+  <div class="bar">
+    <button id="refresh">刷新聚合</button>
+    <span class="sub" id="stat"></span>
+  </div>
+  <div class="srcs" id="srcs"></div>
+  <table id="tbl" style="display:none">
+    <thead>
+      <tr><th>标题</th><th>类型</th><th>来源端</th><th>URI</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div class="msg" id="msg"></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+
+async function refresh() {
+  $('msg').textContent = '正在聚合…';
+  $('msg').className = 'msg';
+  try {
+    const res = await fetch('/api/aggregate');
+    const data = await res.json();
+
+    $('srcs').innerHTML = (data.sources || []).map((s) => (
+      `<span class="tag ${s.ok ? 'ok' : 'err'}">${s.label}：${s.ok ? s.count + ' 项' : '不可用'}${s.error ? '（' + s.error + '）' : ''}</span>`
+    )).join('');
+
+    const rows = (data.items || []).map((it) => (
+      `<tr class="clickable" data-id="${it.id}">
+         <td>${escapeHtml(it.title || '')}</td>
+         <td><span class="kind">${it.kind || '-'}</span></td>
+         <td>${escapeHtml(it._endLabel || it._end || '')}</td>
+         <td class="uri">${escapeHtml(it.uri || '')}</td>
+       </tr>`
+    )).join('');
+    $('rows').innerHTML = rows;
+    $('tbl').style.display = (data.items || []).length ? '' : 'none';
+    $('stat').textContent = `共 ${data.total} 项 · ${new Date(data.generatedAt).toLocaleTimeString()}`;
+    $('msg').textContent = (data.items || []).length ? '点击任意一行即可深链打开。' : '没有聚合到任何媒体。';
+
+    document.querySelectorAll('tr.clickable').forEach((tr) => {
+      tr.onclick = () => open_(tr.dataset.id);
+    });
+  } catch (e) {
+    $('msg').textContent = '聚合失败：' + e.message;
+    $('msg').className = 'msg err';
+  }
+}
+
+async function open_(id) {
+  $('msg').textContent = '正在打开…';
+  $('msg').className = 'msg';
+  try {
+    const res = await fetch('/api/open', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      $('msg').textContent = '打开失败：' + (data.error || '未知错误');
+      $('msg').className = 'msg err';
+      return;
+    }
+    if (data.action.action === 'browser') {
+      window.open(data.action.url, '_blank');
+      $('msg').textContent = '已在浏览器打开：' + data.action.url;
+    } else {
+      $('msg').textContent = `已深链到 ${data.item._end}（动作：${data.action.action}）· ${data.item.title}`;
+    }
+  } catch (e) {
+    $('msg').textContent = '打开失败：' + e.message;
+    $('msg').className = 'msg err';
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+$('refresh').onclick = refresh;
+refresh();
+</script>
+</body>
+</html>

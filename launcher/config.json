@@ -1,0 +1,52 @@
+{
+  "port": 7920,
+  "_说明": "统一启动器配置。相对路径按仓库根解析。各来源的 list 尽量复用该端自己的真实代码；单个来源不可用只会在 /api/aggregate 里标记 error，不影响其它来源。",
+  "sources": [
+    {
+      "id": "pluginplayer",
+      "label": "PluginPlayer · 媒体库",
+      "list": {
+        "kind": "http",
+        "url": "http://127.0.0.1:7913/api/library",
+        "tokenFile": "pluginplayer/dist/config/rpc-token.txt",
+        "timeoutMs": 3000
+      },
+      "open": {
+        "kind": "rpc",
+        "host": "127.0.0.1",
+        "port": 7911,
+        "tokenFile": "pluginplayer/dist/config/rpc-token.txt"
+      }
+    },
+    {
+      "id": "localplayer",
+      "label": "localplayer · 远端后端",
+      "list": {
+        "kind": "http",
+        "url": "http://127.0.0.1:5000/api/list",
+        "timeoutMs": 3000
+      },
+      "open": {
+        "kind": "browser"
+      }
+    },
+    {
+      "id": "daily",
+      "label": "daily_player · 本地目录",
+      "list": {
+        "kind": "python",
+        "dir": "library",
+        "moduleDir": "daily_player",
+        "python": "F:/Python314/python.exe",
+        "recursive": true,
+        "timeoutMs": 15000
+      },
+      "open": {
+        "kind": "spawn",
+        "cmd": "F:/Python314/python.exe",
+        "args": ["play.py"],
+        "cwd": "daily_player"
+      }
+    }
+  ]
+}

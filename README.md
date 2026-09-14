@@ -1,6 +1,6 @@
 # players-unified
 
-> 版本 **0.2.0** · Phase 1（MediaItem 对齐）+ Phase 2（PlayerEngine 对齐）均已完成
+> 版本 **0.3.0** · Phase 1–3 均已完成（MediaItem / PlayerEngine 三端对齐 + 统一启动器）
 
 本地三个播放器方向的**整合仓库**：三端源码已作为子目录并入本仓库根目录，统一承载、统一版本管理（不再跨仓库引用）。
 
@@ -11,6 +11,19 @@
 | daily_player | [`daily_player/`](daily_player/) | 桌面视频播放器（本地） | Python 3.14 + tkinter + python-vlc（libVLC 引擎），PyInstaller 打包 exe |
 | localplayer | [`localplayer/`](localplayer/) | 浏览器扩展（网页插件版） | Chrome MV3：popup/player.html + offscreen `<video>`，hls.js |
 | PluginPlayer | [`pluginplayer/`](pluginplayer/) | 桌面应用（cordis 独立应用） | C++ FFmpeg + SDL3 原生宿主 + Cordis JS 插件层 |
+
+## 统一启动器（Phase 3）
+
+`launcher/`（Node，零三方依赖）：
+
+```bat
+node launcher/server.mjs            :: 默认读 launcher/config.json，监听 7920
+```
+
+- `GET /` — 聚合 UI；`GET /api/aggregate` — 汇总三端 `MediaItem[]`（每项带 `_end` 来源标记，单源故障降级为 error）
+- `POST /api/open {id, dryRun?}` — 深链跳转：PluginPlayer → 控制通道 `player.open`、localplayer → 浏览器打开远端 URL、daily_player → `spawn python play.py <path>`
+
+来源与打开方式在 `launcher/config.json` 配置；端到端验证：`node launcher/tests/e2e.mjs`。
 
 ## 文档
 

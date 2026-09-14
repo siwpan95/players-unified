@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-import vlc, threading, time, os, re, json
+import vlc, threading, time, os, re, json, sys
 
 # 系统托盘支持（可选）
 try:
@@ -448,5 +448,12 @@ class DailyPlayer:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    DailyPlayer(root)
+    app = DailyPlayer(root)
+    # 可选：命令行传入一个媒体文件 → 直接载入播放（统一启动器深链用）。
+    # 不带参数启动时行为与之前完全一致。
+    if len(sys.argv) > 1:
+        p = os.path.abspath(sys.argv[1])
+        if os.path.isfile(p):
+            app.playlist.append(p)
+            app.load(0)
     root.mainloop()

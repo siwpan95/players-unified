@@ -196,7 +196,7 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
 - **Phase 0**：定义领域模型 + 端口契约 + 本文档 + 三端源码物理整合进本仓库。✅ 已完成。
 - **Phase 1**：`MediaItem` schema 三端对齐（见 §6）。✅ 已完成 —— localplayer / daily_player / PluginPlayer 三端均落地「媒体源」产出 `MediaItem[]`；并各含 schema 断言测试（`daily_player/tests`、`localplayer/tests`、`pluginplayer/host-js/plugins/lib`），零三方依赖、直跑真实代码路径。
 - **Phase 2**：共享 UX 控制契约对齐（见 §5）。✅ 已完成 —— 三端均落地 `PlayerEngine` 适配器（`daily_player/player_engine.py`、`localplayer/player_engine.js`、`pluginplayer/host-js/player-engine.mjs`），并各含 `PlayerState` schema 断言测试；能力差异（如 localplayer 不支持 `snapshot`）已在适配器 `capabilities` 中显式声明。
-- **Phase 3**：统一启动器（聚合三端 `MediaSource`）。
+- **Phase 3**：统一启动器（枚举聚合 + 深链跳转）。✅ 已完成 —— `launcher/server.mjs`（Node 零依赖 + `index.html` UI）聚合三端 `MediaSource.list()`，单个来源故障只降级为 error 不拖垮整体；`POST /api/open` 按来源端深链：PluginPlayer → 控制通道 `player.open`、localplayer → 浏览器打开远端 URL、daily_player → `spawn python play.py <path>`。端到端验证见 `launcher/tests/e2e.mjs`。
 - **Phase 4（可选）**：探索跨宿主「引擎可替换」（如用 PluginPlayer 的 FFmpeg 引擎驱动 daily_player 的 UI）——仅作长期设想。
 
 ## 8. 风险与未决
@@ -204,4 +204,4 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
 - 三端语言不同，只能共享 **schema/契约**，无法共享实现；适配器各自维护。
 - daily_player 无插件/无网络，其适配器需要新增最小抽象层（仅结构调整）。
 - PluginPlayer 内部接口已在 P0-1 读码探明并落地「媒体源」Cordis 插件（`media-library`），§4 映射已对齐；引擎层/UX（§5）快捷键等仍待补全。
-- 统一启动器若要真正播放跨端媒体，需解决「谁来解码」：本地路径在浏览器端无法直接 `file://` 播放（localplayer 走打包/远端，不直接播本地文件），这是跨端启动器的硬约束，Phase 3 需决策。
+- ~~统一启动器若要真正播放跨端媒体，需解决「谁来解码」：本地路径在浏览器端无法直接 `file://` 播放……Phase 3 需决策。~~ → **Phase 3 已决策并落地**：**不跨端解码**，改为**深链到拥有该媒体的那一端**（各端用自己的引擎播放）。启动器只负责「枚举聚合 + 路由」，本地路径不会被塞给浏览器端，§8 原硬约束因此消解。
