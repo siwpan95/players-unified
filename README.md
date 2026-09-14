@@ -31,6 +31,6 @@ node launcher/server.mjs            :: 默认读 launcher/config.json，监听 7
 
 ## 状态
 
-✅ **已整合（物理合并）** · ✅ **Phase 1 已完成**。三端源码已复制进本仓库子目录；`MediaItem` 跨端共享契约已落地（`schema/media-item.schema.json`），localplayer / daily_player / PluginPlayer 三端均产出 `MediaItem[]`（PluginPlayer 通过 Cordis 插件 `media-library` 扫描目录 + HTTP `/api/library` 接口）。三端均含 `MediaItem` schema 断言测试（`daily_player/tests`、`localplayer/tests`、`pluginplayer/host-js/plugins/lib`），零三方依赖、直跑真实代码路径。Phase 2 的 `PlayerEngine` 适配器亦已三端落地（`daily_player/player_engine.py`、`localplayer/player_engine.js`、`pluginplayer/host-js/player-engine.mjs`），并各含 `PlayerState` schema 断言测试。详见 [ARCHITECTURE.md](ARCHITECTURE.md)。
+✅ **已整合（物理合并）** · ✅ **Phase 1 已完成**。三端源码已复制进本仓库子目录；`MediaItem` 跨端共享契约已落地（`schema/media-item.schema.json`），localplayer / daily_player / PluginPlayer 三端均产出 `MediaItem[]`（PluginPlayer 通过 Cordis 插件 `media-library` 扫描目录 + HTTP `/api/library` 接口）。三端均含 `MediaItem` schema 断言测试（`daily_player/tests`、`localplayer/tests`、`pluginplayer/host-js/plugins/lib`），零三方依赖、直跑真实代码路径。Phase 2 的 `PlayerEngine` 适配器亦已三端落地（`daily_player/player_engine.py`、`localplayer/player_engine.js`、`pluginplayer/host-js/player-engine.mjs`），并各含 `PlayerState` schema 断言测试。Phase 4（S0）已落地 `daily_player/player_engine_rpc.py`——同一 `PlayerEngine` 端口的 PluginPlayer 控制通道适配器，使 daily_player 可不改 UI 切换内核；可行性评估见 [docs/phase4-kernel-assessment.md](docs/phase4-kernel-assessment.md)。详见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
 > 说明：三端语言/宿主不同（Python / JS / C++），整合方式是**物理整合（子目录共存）**而非跨语言源码合并；统一层只共享 schema/契约，各端仍按各自技术栈独立演进。
