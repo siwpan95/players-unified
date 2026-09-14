@@ -296,6 +296,7 @@ export const config = {}
 | 通配订阅 + `ctx.effect` 落盘 | `host-js/plugins/01-event-log.mjs` |
 | 服务型插件 + 状态持久化 + 调用原生命令 | `host-js/plugins/02-auto-resume.mjs` |
 | 提供自己的 HTTP UI（零依赖） | `host-js/plugins/03-web-remote.mjs` |
+| 媒体源插件（扫描目录产出 `MediaItem[]` + HTTP 列表） | `host-js/plugins/media-library.mjs` |
 
 ### 5. 调试
 

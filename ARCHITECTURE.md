@@ -185,7 +185,7 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
 
 1. **localplayer**：✅ `server.py /api/list` 已产出 `MediaItem`（`id`/`uri`/`title`/`artist`/`kind`/`durationMs`/`source`/`subtitleTracks`/`thumbnail`）；`background.js` 的远端源适配器已透传规范字段（并保留 `name`/`type`/`path` 过渡别名以兼容 popup）。
 2. **daily_player**：✅ 新增 `media_source.py` 的 `LocalFileSource.list()` 返回 `MediaItem[]`（`play.py` 既有行为未改）。
-3. **PluginPlayer**：🔶 SDK（`src/sdk/player_plugin.h`）新增 `PP_MediaItem` 结构体对齐 schema；「媒体源插件」尚未实现，待 Phase 2 落地。
+3. **PluginPlayer**：✅ Cordis JS 插件 `host-js/plugins/media-library.mjs` 落地「媒体源」（扫描目录产出 `MediaItem[]`，HTTP `/api/library` 接口），SDK 侧 `PP_MediaItem` 作为 C ABI 镜像已就绪。
 
 完成后，可做一个**「统一启动器」**：聚合三端 `MediaSource.list()`，在一个界面里列出全部可播媒体。这是整合的第一个真正可用的跨端产物。
 
