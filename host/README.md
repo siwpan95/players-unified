@@ -22,6 +22,7 @@ node src/cli.mjs --list-profiles
 
 node tests/run-all.mjs                               # 全部验收（5 个文件，116 项）
 node tests/run-all.mjs --only=ws                     # 只跑名字里带 ws 的
+PU_REPORT=1 node tests/run-all.mjs                   # 另外刷新 docs/*.json 证据（默认不写盘，见下）
 ```
 
 启动起来之后（`--profile desktop` 默认值），宿主就是 localplayer 原 Flask 后端的**替代品**，
@@ -93,6 +94,7 @@ tests/library-parity.mjs    S5-2 列表面验收（vs python media_lib）
 tests/ws-rfc6455.mjs        S5-3 帧级验收（vs undici 真客户端 + raw 非法帧）
 tests/remote-parity.mjs     S5-3 信令跨语言 A/B 对拍（vs python flask-sock）
 tests/helpers/raw-ws.mjs    手写 raw WS 客户端（构造合法帧测不了的那些畸形帧）
+tests/helpers/report.mjs    报告落盘闸门（默认不写，`PU_REPORT=1` / `--report` 才写）
 tests/fixtures/*.mjs        测试替身（echo 插件等）
 ```
 
@@ -155,6 +157,12 @@ tests/fixtures/*.mjs        测试替身（echo 插件等）
 ## 验收证据
 
 一个入口跑全套：`node tests/run-all.mjs` → **5 个文件 / 116 项全绿**（约 8 秒）。
+
+报告默认**不写盘**（`tests/helpers/report.mjs`）：`docs/s5-*.json` 是被 git 跟踪的发版证据，
+而报告里天然含有**逐次运行都会变**的坐标（`generatedAt`、夹具随机端口、`mkdtemp` 临时目录名、
+客户端随机 key 导出的 accept 回显），随手跑一次测试就会把这 4 个文件改脏，而这些差异没有信息量。
+要刷新证据得显式 `PU_REPORT=1`。**可复现的是判定结果**（断言名 / ok / 计数 / conclusion），
+**不是夹具坐标** —— 确认一次重跑没有实质改动，看 `git diff --stat docs/` 有没有超出坐标的变更。
 
 - `tests/loader-semantics.mjs` —— **27/27**。把上面第 4/5/6/7/8 条语义钉成可回归的断言。
 - `tests/parity.mjs` —— **10/10**，报告落在 `docs/s5-host-parity.json`。

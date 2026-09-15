@@ -1,6 +1,6 @@
 {
   "schema": "players-unified/s5-ws-rfc6455/1",
-  "generatedAt": "2026-09-15T01:23:26.753Z",
+  "generatedAt": "2026-09-15T01:32:49.196Z",
   "implementation": "host/lib/ws.mjs（零依赖手写 RFC6455 服务端）",
   "anchors": {
     "rfcVector": "acceptKey(\"dGhlIHNhbXBsZSBub25jZQ==\") === \"s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\"（RFC6455 §1.3 官方示例）",
@@ -27,7 +27,7 @@
     {
       "name": "A2 正常握手 → 101 + Upgrade/Connection/Accept 头齐全",
       "ok": true,
-      "detail": "101 accept=jSHYSxJHp+shKqSV9zRoiBXPlxk="
+      "detail": "101 accept=s5XgNJTgmajUkwBHDolim9SLxOo="
     },
     {
       "name": "A3 客户端请求 permessage-deflate 也不协商（101 里不出现该头）",

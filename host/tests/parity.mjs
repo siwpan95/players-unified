@@ -29,6 +29,7 @@ import Loader from '@cordisjs/plugin-loader'
 
 import { compose, HOST_DIR } from '../src/compose.mjs'
 import { attachConsoleLogger } from '../src/logging.mjs'
+import { writeReport } from './helpers/report.mjs'
 import * as launcher from '../../launcher/server.mjs'
 
 const PYTHON = 'F:/Python314/python.exe'
@@ -265,7 +266,7 @@ const report = {
   conclusion: failures === 0 ? 'ctx.media.aggregate 与 launcher.aggregate 逐项一致' : '存在不一致，见 checks',
 }
 fs.mkdirSync(path.dirname(REPORT), { recursive: true })
-fs.writeFileSync(REPORT, JSON.stringify(report, null, 2) + '\n', 'utf8')
+writeReport(REPORT, report)
 
 /* ---------- 清理 ---------- */
 lp.server.close()
@@ -273,5 +274,4 @@ pp.server.close()
 fs.rmSync(tmpRoot, { recursive: true, force: true })
 
 console.log(`\n${failures === 0 ? '== 全部通过 ==' : '== 有失败项 =='}  ${results.length - failures}/${results.length}`)
-console.log(`报告： ${REPORT}`)
 process.exit(failures ? 1 : 0)

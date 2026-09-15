@@ -34,6 +34,7 @@ import Loader from '@cordisjs/plugin-loader'
 
 import { compose, HOST_DIR } from '../src/compose.mjs'
 import { attachConsoleLogger } from '../src/logging.mjs'
+import { writeReport } from './helpers/report.mjs'
 
 const PYTHON = 'F:/Python314/python.exe'
 const LOCALPLAYER = path.resolve(HOST_DIR, '..', 'localplayer')
@@ -351,11 +352,11 @@ const report = {
   passed: results.length - failures,
   failed: failures,
   conclusion: failures === 0
-    ? '宿主 /ws 信令中继与 localplayer Flusk 后端在同一剧本下逐条一致；差异仅为有意收紧/明确化的两项'
+    ? '宿主 /ws 信令中继与 localplayer Flask 后端在同一剧本下逐条一致；差异仅为有意收紧/明确化的两项'
     : '存在失败项，见 checks',
 }
 fs.mkdirSync(path.dirname(REPORT), { recursive: true })
-fs.writeFileSync(REPORT, JSON.stringify(report, null, 2) + '\n', 'utf8')
+writeReport(REPORT, report)
 
 await ctx.loader.remove('web')
 fs.rmSync(tmpDir, { recursive: true, force: true })
@@ -367,5 +368,4 @@ try {
 fs.closeSync(pyLogFd)
 
 console.log(`\n${failures === 0 ? '== 全部通过 ==' : '== 有失败项 =='}  ${results.length - failures}/${results.length}`)
-console.log(`报告： ${REPORT}`)
 process.exit(failures ? 1 : 0)

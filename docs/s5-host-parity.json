@@ -1,6 +1,6 @@
 {
   "schema": "players-unified/s5-host-parity/1",
-  "generatedAt": "2026-09-15T01:23:24.258Z",
+  "generatedAt": "2026-09-15T01:32:46.668Z",
   "profile": "desktop",
   "layers": [
     "cordis.json",
@@ -10,12 +10,12 @@
     "patches/parity-fixture.json"
   ],
   "fixtures": {
-    "localplayerUrl": "http://127.0.0.1:9455/api/list",
-    "pluginplayerUrl": "http://127.0.0.1:9456/api/library",
+    "localplayerUrl": "http://127.0.0.1:12736/api/list",
+    "pluginplayerUrl": "http://127.0.0.1:12737/api/library",
     "pluginplayerTokenChecked": true,
-    "mediaDir": "C:\\Users\\13122\\AppData\\Local\\Temp\\puh-parity-JaMGE6\\library",
+    "mediaDir": "C:\\Users\\13122\\AppData\\Local\\Temp\\puh-parity-yS8uzo\\library",
     "python": "F:/Python314/python.exe",
-    "deadPort": 9457
+    "deadPort": 12738
   },
   "host": {
     "total": 7,

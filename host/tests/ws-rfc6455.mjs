@@ -24,6 +24,7 @@ import { compose, HOST_DIR } from '../src/compose.mjs'
 import { attachConsoleLogger } from '../src/logging.mjs'
 import { acceptKey, encodeFrame, FrameDecoder, OPCODE, CLOSE_CODE } from '../lib/ws.mjs'
 import { rawConnect, sleep } from './helpers/raw-ws.mjs'
+import { writeReport } from './helpers/report.mjs'
 
 const REPORT = path.resolve(HOST_DIR, '..', 'docs', 's5-ws-rfc6455-report.json')
 const ECHO = '/ws-echo'
@@ -400,11 +401,10 @@ const report = {
     : '存在失败项，见 checks',
 }
 fs.mkdirSync(path.dirname(REPORT), { recursive: true })
-fs.writeFileSync(REPORT, JSON.stringify(report, null, 2) + '\n', 'utf8')
+writeReport(REPORT, report)
 
 for (const id of ['echo', 'echoSmall', 'web']) await ctx.loader.remove(id)
 fs.rmSync(tmpDir, { recursive: true, force: true })
 
 console.log(`\n${failures === 0 ? '== 全部通过 ==' : '== 有失败项 =='}  ${results.length - failures}/${results.length}`)
-console.log(`报告： ${REPORT}`)
 process.exit(failures ? 1 : 0)

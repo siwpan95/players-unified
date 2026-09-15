@@ -26,6 +26,7 @@ import { compose, HOST_DIR } from '../src/compose.mjs'
 import { attachConsoleLogger } from '../src/logging.mjs'
 import { buildMediaItems } from '../src/web/library-core.mjs'
 import { parseRange } from '../src/web/library-face.mjs'
+import { writeReport } from './helpers/report.mjs'
 
 const PYTHON = 'F:/Python314/python.exe'
 const REPORT = path.resolve(HOST_DIR, '..', 'docs', 's5-library-face-report.json')
@@ -250,12 +251,11 @@ const report = {
     : '存在失败项，见 checks',
 }
 fs.mkdirSync(path.dirname(REPORT), { recursive: true })
-fs.writeFileSync(REPORT, JSON.stringify(report, null, 2) + '\n', 'utf8')
+writeReport(REPORT, report)
 
 /* ---------- 清理（触发器：先关宿主再删临时目录） ---------- */
 await ctx.loader.remove('web')
 fs.rmSync(tmpRoot, { recursive: true, force: true })
 
 console.log(`\n${failures === 0 ? '== 全部通过 ==' : '== 有失败项 =='}  ${results.length - failures}/${results.length}`)
-console.log(`报告： ${REPORT}`)
 process.exit(failures ? 1 : 0)

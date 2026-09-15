@@ -1,18 +1,18 @@
 {
   "schema": "players-unified/s5-remote-parity/1",
-  "generatedAt": "2026-09-15T01:23:30.927Z",
+  "generatedAt": "2026-09-15T01:32:53.338Z",
   "sides": {
     "python": {
       "interpreter": "F:/Python314/python.exe",
       "entry": "localplayer/server.py",
       "stack": "Flask + flask-sock",
-      "port": 9503,
-      "log": "C:\\Users\\13122\\AppData\\Local\\Temp\\pu-py-1789435407113.log"
+      "port": 12785,
+      "log": "C:\\Users\\13122\\AppData\\Local\\Temp\\pu-py-1789435969539.log"
     },
     "host": {
       "entry": "host/src/web/remote.mjs + host/src/web/signaling.mjs",
       "transport": "host/lib/ws.mjs（自写 RFC6455）",
-      "port": 9504
+      "port": 12786
     }
   },
   "client": "Node 内置 undici WebSocket（v22.22.2），两侧共用同一份剧本",
@@ -208,12 +208,12 @@
     {
       "name": "A 侧 python/flask-sock 后端已起（被替代的那个）",
       "ok": true,
-      "detail": "port=9503 log=C:\\Users\\13122\\AppData\\Local\\Temp\\pu-py-1789435407113.log"
+      "detail": "port=12785 log=C:\\Users\\13122\\AppData\\Local\\Temp\\pu-py-1789435969539.log"
     },
     {
       "name": "B 侧宿主 /ws 已监听",
       "ok": true,
-      "detail": "port=9504"
+      "detail": "port=12786"
     },
     {
       "name": "剧本两侧都没有踩到「期望条数没等到」的超时",
@@ -273,7 +273,7 @@
     {
       "name": "观看页带专用 CSP（放开内联脚本与同源 ws，否则页面脚本被 default-src 'none' 挡死）",
       "ok": true,
-      "detail": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src http://127.0.0.1:9504 ws://127.0.0.1:9504 http://localhost:9504 ws://loca"
+      "detail": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src http://127.0.0.1:12786 ws://127.0.0.1:12786 http://localhost:12786 ws://l"
     },
     {
       "name": "对照：列表面仍是收紧的 default-src 'none'（CSP 是按面给的，不是一刀切）",
@@ -288,5 +288,5 @@
   ],
   "passed": 16,
   "failed": 0,
-  "conclusion": "宿主 /ws 信令中继与 localplayer Flusk 后端在同一剧本下逐条一致；差异仅为有意收紧/明确化的两项"
+  "conclusion": "宿主 /ws 信令中继与 localplayer Flask 后端在同一剧本下逐条一致；差异仅为有意收紧/明确化的两项"
 }

@@ -1,6 +1,6 @@
 {
   "schema": "players-unified/s5-library-face/1",
-  "generatedAt": "2026-09-15T01:23:25.094Z",
+  "generatedAt": "2026-09-15T01:32:47.536Z",
   "python": {
     "interpreter": "F:/Python314/python.exe",
     "module": "localplayer/media_lib.py",
@@ -12,7 +12,7 @@
     "items": 7
   },
   "fixture": {
-    "mediaDir": "C:\\Users\\13122\\AppData\\Local\\Temp\\puh-lib-oJ7p3w\\media",
+    "mediaDir": "C:\\Users\\13122\\AppData\\Local\\Temp\\puh-lib-rMib52\\media",
     "files": [
       "a 第一集.mkv",
       "b 第二集.mp4",
