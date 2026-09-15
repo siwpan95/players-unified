@@ -1,0 +1,135 @@
+{
+  "schema": "players-unified/s5-host-parity/1",
+  "generatedAt": "2026-09-15T01:23:24.258Z",
+  "profile": "desktop",
+  "layers": [
+    "cordis.json",
+    "bundles/sources.json",
+    "bundles/web-face.json",
+    "profiles/desktop.json",
+    "patches/parity-fixture.json"
+  ],
+  "fixtures": {
+    "localplayerUrl": "http://127.0.0.1:9455/api/list",
+    "pluginplayerUrl": "http://127.0.0.1:9456/api/library",
+    "pluginplayerTokenChecked": true,
+    "mediaDir": "C:\\Users\\13122\\AppData\\Local\\Temp\\puh-parity-JaMGE6\\library",
+    "python": "F:/Python314/python.exe",
+    "deadPort": 9457
+  },
+  "host": {
+    "total": 7,
+    "sources": [
+      {
+        "id": "pluginplayer",
+        "label": "PluginPlayer · 媒体库",
+        "ok": true,
+        "count": 2
+      },
+      {
+        "id": "localplayer",
+        "label": "localplayer · 远端后端",
+        "ok": true,
+        "count": 2
+      },
+      {
+        "id": "daily",
+        "label": "daily_player · 本地目录",
+        "ok": true,
+        "count": 3
+      },
+      {
+        "id": "dead",
+        "label": "死端口来源（故障降级对比）",
+        "ok": false,
+        "count": 0,
+        "error": "fetch failed"
+      }
+    ]
+  },
+  "launcher": {
+    "total": 7,
+    "sources": [
+      {
+        "id": "pluginplayer",
+        "label": "PluginPlayer · 媒体库",
+        "ok": true,
+        "count": 2
+      },
+      {
+        "id": "localplayer",
+        "label": "localplayer · 远端后端",
+        "ok": true,
+        "count": 2
+      },
+      {
+        "id": "daily",
+        "label": "daily_player · 本地目录",
+        "ok": true,
+        "count": 3
+      },
+      {
+        "id": "dead",
+        "label": "死端口来源（故障降级对比）",
+        "ok": false,
+        "count": 0,
+        "error": "fetch failed"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "宿主按「基座 → bundle → profile → patch」合成后，来源注册顺序与描述符一致",
+      "ok": true,
+      "detail": "media.ids() = [\"pluginplayer\",\"localplayer\",\"daily\",\"dead\"]"
+    },
+    {
+      "name": "total 一致",
+      "ok": true,
+      "detail": "host=7 launcher=7"
+    },
+    {
+      "name": "total > 0（确认 fixture 真的产出了数据，不是「两边都空」）",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "sources[] 状态逐项一致",
+      "ok": true,
+      "detail": "{\"host\":[{\"id\":\"pluginplayer\",\"label\":\"PluginPlayer · 媒体库\",\"ok\":true,\"count\":2},{\"id\":\"localplayer\",\"label\":\"localplayer · 远端后端\",\"ok\":true,\"count\":2},{\"id\":\"daily\",\"label\":\"daily_player · 本地目录\",\"ok\":true,\"count\":3},{\"id\":\"dead\",\"label\":\"死端口来源（故障降级对比）\",\"ok\":false,\"count\":0,\"error\":\"fetch failed\"}],\"launcher\":[{\"id\":\"pluginplayer\",\"label\":\"PluginPlayer · 媒体库\",\"ok\":true,\"count\":2},{\"id\":\"localplayer\",\"label\":\"localplayer · 远端后端\",\"ok\":true,\"count\":2},{\"id\":\"daily\",\"label\":\"daily_player · 本地目录\",\"ok\":true,\"count\":3},{\"id\":\"dead\",\"label\":\"死端口来源（故障降级对比）\",\"ok\":false,\"count\":0,\"error\":\"fetch failed\"}]}"
+    },
+    {
+      "name": "items[] 逐项一致（顺序、字段、_end 标记）",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "除 generatedAt 外整体一致",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "planOpen 对全部 7 项一致",
+      "ok": true,
+      "detail": "（含 rpc / browser / spawn 三种动作）"
+    },
+    {
+      "name": "来源不可达时两侧都降级为 ok=false / count=0，且不影响其它来源",
+      "ok": true,
+      "detail": "host.error=fetch failed / launcher.error=fetch failed"
+    },
+    {
+      "name": "两侧的故障文案一致",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "PluginPlayer 来源带上了 X-PP-Token（fixture 会拒绝无令牌请求）",
+      "ok": true,
+      "detail": "{\"id\":\"pluginplayer\",\"label\":\"PluginPlayer · 媒体库\",\"ok\":true,\"count\":2}"
+    }
+  ],
+  "passed": 10,
+  "failed": 0,
+  "conclusion": "ctx.media.aggregate 与 launcher.aggregate 逐项一致"
+}

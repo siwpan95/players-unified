@@ -453,3 +453,103 @@ GUI 冒烟里 `app.screenshot()` 报「截图失败」，紧接着直接调 `ker
 仍在的原有限制（**非阻塞**）：画面无法嵌入 tk 窗口（要单窗口得做 S2，改 C++）、
 播放列表仍是 UI 侧自建、`--hidden` 下全屏无意义、分发需带预编译 exe。
 
+---
+
+## 12. S5 实测：统一 Cordis 宿主（2026-09-15，三段全通过）
+
+### 12.1 起点
+
+S4 之后仓库里有两个「后端面」各自为政：
+
+| 现状 | 问题 |
+|---|---|
+| `launcher/server.mjs` —— 聚合三端媒体 + 深链（Node，监听 7920） | 自有一套来源配置与故障模型 |
+| `localplayer/server.py` —— 清单 + 媒体文件 + WebRTC 信令 + 观看页（Flask，监听 5000） | 又一套配置、又一个要单独启动的进程 |
+| `pluginplayer/host-js/package.json` 里声明了 `@cordisjs/plugin-loader` | **死依赖**：声明了但没人 import |
+
+目标不是「把三个运行时合并成一份代码」（§0 原则 1 与 §8 的硬约束没变），而是把**后端面**收成
+一棵可插拔插件树，形态学 dsh：基座 → bundle → profile → patch，`--dump-config` 打印实际启动后的树。
+
+### 12.2 三段做了什么
+
+| 段 | 内容 | 关键设计 |
+|---|---|---|
+| **S5-1** | 宿主骨架：`ctx.media` 服务 + 三个来源适配器 + 分层合成器 + `--dump-config`/`--check` | 来源注册是**可撤销副作用**（`ctx.effect`）→ 整组来源能被 profile/patch 关掉；**自建嵌套分组插件**（loader 自带的 `Group` 实测是平铺的，见 12.4） |
+| **S5-2** | 吸收 `localplayer/server.py` 的清单面：`/api/list` + `/media/<file>` | 纯移植 `media_lib.build_media_items()`（含「名叫 `fake.mp4` 的目录也入列」这种 python 怪癖）→ 才能与 python **逐字段**比对；额外补单段 Range |
+| **S5-3** | 吸收 `/ws` 信令 + `/remote` 观看页 | **零依赖手写 RFC6455**（`host/lib/ws.mjs`）；信令状态机抽成**纯模块**（`signaling.mjs`）以便跨语言 A/B；`ctx.web` 统一持有端口（同源是 `/remote` 里 `ws://location.host/ws` 成立的前提） |
+
+### 12.3 实测结果
+
+一个入口跑全套：`node host/tests/run-all.mjs` → **5 个文件 / 116 项全绿，约 8.2 秒**。
+
+| 文件 | 项数 | 锚点是什么 |
+|---|---|---|
+| `loader-semantics.mjs` | 27/27 | loader 的真实语义（平铺 Group / 分层 id 来源 / `group:true` 不可停用 / effect 返回值校验 / 卸载只保证发起顺序） |
+| `parity.mjs` | 10/10 | 与 `launcher.aggregate()`/`planOpen()` 在真实 fixture 上逐项对拍 → `docs/s5-host-parity.json` |
+| `library-parity.mjs` | 27/27 | 与真跑的 `media_lib.build_media_items()` **逐字段 + 键顺序**对拍 + 真 HTTP（字节/Range/穿越/Host/Origin） → `docs/s5-library-face-report.json` |
+| `ws-rfc6455.mjs` | 36/36 | RFC6455 §1.3 官方向量 + **Node 内置 undici WebSocket**（第三方真客户端）互操作 + raw 客户端构造畸形帧 → `docs/s5-ws-rfc6455-report.json` |
+| `remote-parity.mjs` | 16/16 | **同一份剧本 × python flask-sock / 宿主**，逐条比对每个对端收到的消息序列 → `docs/s5-remote-parity.json` |
+
+其中两次对拍是这次最有价值的产物 —— 它们不是「读代码说一致」：
+
+```
+transcript.sender（python 与宿主两侧完全一致）
+[offer-request, candidate, viewer-count:1, offer-request, candidate,
+ viewer-count:0, viewer-count:0, viewer-count:1, offer-request, candidate]
+```
+覆盖了 python 那套「单槽位、后来者覆盖」语义里最容易写错的地方：发送端**晚于**接收端上线时
+不发 `viewer-count`；第二个接收端覆盖槽位、它掉线清槽位并通知 `count:0`；此时第一个接收端已成
+孤儿，它掉线**仍会**再发一次 `count:0`（发送端连收两次 0）；从未声明角色者的消息按
+`_relay_to_other(None, …)` 中继给 **sender**；`meta` 既缓存又照常转发；发送端掉线只通知槽位里的接收端。
+
+### 12.4 实测抓到的四个真问题（都已修，都有回归）
+
+1. **`cordis:group`（loader 自带的 `Group`）不是嵌套树** —— 实测它的子条目注册在**根 store**、
+   id 不加前缀、`resolve('父:子')` 直接失败。分层 id 只能来自「插件自己 `new EntryTree`」
+   （`EntryTree` 构造里 `ctx.fiber.entry.subtree = this`）→ 因此自建了 `src/core/group.mjs`。
+2. **条目 options 写 `group: true` 会永远停用不了** —— `Entry.disabled` 第一行就是
+   `if (this.options.group) return false`，`disabled: true` 被静默忽略；而认出它是 group 靠的是
+   `EntryGroup.key` 这个 symbol，与 `group: true` 无关。
+3. **手写 WebSocket 的分片解析坑**（自家测试抓的）：解析循环把「数据不足」与「消费了一帧但没事件」
+   混用同一个返回值，导致客户端把握手与第一帧、或把分片的两帧一次性写出来时，消息要等到**下一个
+   字节**到达才交付。改成三态（`undefined`/`null`/对象）后 `ws-rfc6455` 的 C11/C12/C13 转绿。
+4. **`localplayer/server.py` 的 `/ws` 必崩**（A/B 对拍抓的，**最有价值的一个**）：
+   `ws_signaling()` 里 `_last_meta = msg` 的赋值让这个名字成为**函数局部变量**，于是同一函数里
+   先出现的那句 `if _last_meta is not None:` 必然抛
+   `UnboundLocalError: cannot access local variable '_last_meta'` →
+   任何 viewer 一声明角色，`/ws` 立刻 500 断连，**发送端永远收不到 `offer-request`、中继全废**
+   —— 也就是「网页投送」从接收端根本用不了。werkzeug 日志里三条 500 的堆栈是直接证据。
+   已修（`global _last_meta`，见 `localplayer/CHANGELOG.md`）。
+   > 顺带说明：**必须先修参照实现再做对拍**，否则「两侧一致」这个断言无从谈起。
+
+另有两个工程性修复：CLI 因 `ctx.web` 持有监听 handle 而**挂住不退出**（一次性 CLI 现按「逆向卸载
+所有根条目」收尾 + `unref()` 兜底强退）；端口被占用时 `listen` 失败会变成未处理的 Promise 拒绝
+把进程打崩（现改为明确报错并提示「旧的 python server.py 还在跑」）。
+
+**关于最初那个「死依赖」**：`pluginplayer/host-js/package.json` 声明了 `@cordisjs/plugin-loader@^1.0.0-rc.6`
+但全仓无一处 import（实测 grep：该子项目只 import `cordis` 的 `Context`/`Service`，它不需要配置树装载器）。
+这轮的处理是：**把 loader 真正用起来放在 `host/`**（`host/package.json` 固定 `cordis@4.0.0-rc.10` +
+`@cordisjs/plugin-loader@1.0.0-rc.7`，README 里的坑 4~9 全部来自它的真实代码路径）。
+`host-js` 那份声明**这次刻意没删**：删它必须同时重建它的 `package-lock.json`，而
+`npm install --package-lock-only` 会重新解析整棵树 —— `cordis@^4.0.0-rc.9` 会被解到 rc.10，
+等于在「清理依赖」的名义下悄悄改了 PluginPlayer JS 宿主的运行时版本。那是一次独立改动，
+该在动 host-js 时单独做、单独验（它有自己的 5 个 python 测试 + 插件加载回归）。
+
+### 12.5 有意保留的差异（写在报告里，不当成 bug）
+
+| 项 | python | 宿主 | 理由 |
+|---|---|---|---|
+| 非法消息的关闭码 | 抛异常断连（客户端看到 1006） | 显式 1003 | 带明确关闭码便于定位；消息序列行为一致 |
+| 升级请求的 Origin | 不校验（任意网页都能连上来当接收端） | 同源 + `chrome-extension://` 放行，其余 403 | 挡掉任意网页；放行扩展是「扩展零改动」的前提 |
+| `/media` 的 Range | 不支持 | 支持单段 | `<video>` 拖动定位需要 |
+
+### 12.6 结论
+
+**「把三端的后端面收进一个 Cordis 宿主」已落地并实测通过**，且这轮的性质与 S4 不同：
+S4 的验证对象是「换内核后行为不变」，S5 的验证对象是「**同一份契约的两套独立实现行为一致**」——
+所以这一轮引入了 **A/B 对拍** 作为主要手段，代价是必须先修好参照实现，收益是它直接暴露了
+python 后端一个必崩 bug（若只做「新实现自测」，这个 bug 会一直躺在 `server.py` 里）。
+
+宿主**不做**的事（有意，非欠账）：跨语言源码合并、解码、UI 统一、接管 PluginPlayer 的
+`/api/library` 与 daily_player 的 `play.py` 进程。宿主只深链过去。
+

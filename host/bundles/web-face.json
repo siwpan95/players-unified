@@ -1,0 +1,33 @@
+{
+  "$note": "Bundle：宿主自己提供的 HTTP 面（取代各端原来的独立后端）。注意结构：**一个** ctx.web 服务持有监听，列表面与投送面挂在同一个监听上 —— 同源是 /remote 页面里 ws://location.host/ws 能成立的前提（localplayer 的 Flask 后端也是这个形态）。",
+  "entries": [
+    {
+      "id": "web",
+      "$group": true,
+      "$note": "宿主 HTTP 面（一个端口 = 列表面 + 投送面）",
+      "name": "./src/core/group.mjs",
+      "config": [
+        {
+          "id": "server",
+          "name": "./src/core/web.mjs",
+          "config": {
+            "host": "127.0.0.1",
+            "port": 5000
+          }
+        },
+        {
+          "id": "library",
+          "name": "./src/web/library-face.mjs",
+          "config": {
+            "dir": "localplayer/media"
+          }
+        },
+        {
+          "id": "remote",
+          "name": "./src/web/remote.mjs",
+          "config": {}
+        }
+      ]
+    }
+  ]
+}

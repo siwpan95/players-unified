@@ -1,0 +1,22 @@
+{
+  "$note": "基座层。只声明宿主自身的核心服务，不含任何具体来源 —— 来源由 bundles 提供、由 profiles 挑选。分层语义见 src/compose.mjs。",
+  "host": {
+    "root": "..",
+    "defaultProfile": "desktop"
+  },
+  "entries": [
+    {
+      "id": "core",
+      "$group": true,
+      "$note": "宿主核心服务组",
+      "name": "./src/core/group.mjs",
+      "config": [
+        {
+          "id": "media",
+          "name": "./src/core/media.mjs",
+          "config": { "root": ".." }
+        }
+      ]
+    }
+  ]
+}

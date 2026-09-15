@@ -171,7 +171,11 @@ LocalPlayer.plugins.register({
 
 把扩展内正在播放的视频 / 音频，通过 WebRTC 实时串流到任意「打开 `http://127.0.0.1:5000/remote` 的网页」上观看（如手机 / 平板 / 同网另一台电脑的浏览器），本质是一个轻量「投屏到网页」方案，与 Chromecast 无关。
 
-- **前置**：需先启动可选后端 `python server.py`（默认 `http://127.0.0.1:5000`），它提供 `/ws` 信令中继与 `/remote` 观看页。
+- **前置**：需先启动可选后端（默认 `http://127.0.0.1:5000`），它提供 `/api/list` 媒体清单、`/ws` 信令中继与 `/remote` 观看页。二选一：
+  - `python server.py`（本目录，Flask + flask-sock，依赖见 `requirements.txt`）；
+  - `node host/src/cli.mjs --profile desktop`（仓库根的**统一 Cordis 宿主**，`host/`，零三方依赖）——
+    **同端口、同路径、同报文**，本扩展不用改任何配置（连的就是 `ws://127.0.0.1:5000/ws` 与 `/api/list`）。
+    两者的信令行为已做过跨语言 A/B 对拍（`host/tests/remote-parity.mjs`，16/16 逐条一致）。
 - **使用**：在 popup / 侧边栏 / 独立播放器界面点「🔊 网页投送」开关；开启后 offscreen 将当前媒体经 WebRTC 串流、本地界面静音避免双声，接收端打开 `/remote` 即可观看。
 - **信令兜底**：offscreen 先直连 `ws://127.0.0.1:5000/ws`，超时或报错则回落经 background 持有的中转 WebSocket，提升兼容性。
 - **状态可见**：接收端 `/remote` 显示当前曲目信息（标题 — 艺术家）与连接状态；发送端 popup 显示「📡 投送中 · N 个接收端 / 等待接收端连接」，接收端上下线实时回传。
@@ -186,6 +190,7 @@ LocalPlayer.plugins.register({
 - **Codis**：基于代理的 Redis 分布式集群方案，解决单机 Redis 的容量 / 高可用 / 水平扩容，是后端基础设施。本项目是纯前端、单机、无后端、无共享状态的 MV3 浏览器扩展，既不存数据也不服务多用户，没有需要 Codis 兜底的 Redis。
 - **Cordis**：Koishi 的可逆插件系统元框架（插件可加载 / 卸载 / 销毁）。**不只是"用不上"，而是运行时就不兼容**：Cordis 要求 **Node.js ≥ 22 且为 ESM-only**，其热重载也是针对 Node 环境实现的；MV3 扩展跑在浏览器里，**没有 Node 运行时**，装不上也跑不起来（这与"过度设计"是两回事——前者是取舍，后者是不可能）。此外 MV3 已有轻量能力组合方式（background / content script / message passing / options_page），当前规模也远不需要一个完整插件市场。
   > 补充（三端合并后再评估）：Cordis 在 **PluginPlayer** 侧是成立的——它本来就是 Node + Cordis 的插件宿主（`pluginplayer/host-js/`）。所以正确结论是"Cordis 归 PluginPlayer，不归浏览器端"，而非"Cordis 没用"。
+  > 再补充（Phase 5 / S5 之后）：三端合并仓库还多了一个 **统一 Cordis 宿主 `host/`**（Node），它已经把本扩展依赖的后端面（`/api/list`、`/media/<file>`、`/ws`、`/remote`）**同端口 5000 接管**且**本扩展零改动**。也就是说：Cordis 仍然进不了扩展（运行时不允许），但扩展的**后端**现在可以是 Cordis —— 这两件事不矛盾。
 - **MediaMTX**：自带多协议的流媒体服务器（RTSP / RTMP / HLS / WebRTC / SRT），本质是一个**协议桥**——把直播源（RTSP 摄像头、OBS 的 RTMP 推流、SRT 等）收流后再以多种协议重分发；它只转封装（transmux）不转码。本项目播放的是本地静态文件（mp4 / mp3 / m3u8），浏览器已能直接播放，无需任何流媒体服务器中转；其 HLS 输出是给直播流转封装设计的，用 Flask + 扩展自带 URL 直接服务静态文件更简单，且已经这么做。
 
 ### 什么时候才值得考虑

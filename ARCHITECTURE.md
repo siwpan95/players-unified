@@ -2,6 +2,7 @@
 
 > 本文档定义 localplayer / PluginPlayer / daily_player 三端的整合骨架与目录布局。
 > **状态：已整合（物理合并）。** 三端源码已作为子目录并入本仓库（见 §0），领域模型 + 端口契约（§2–§5）作为后续统一工作的设计基线。
+> 三端之外的**统一 Cordis 宿主**已落地在 `host/`（Phase 5 / S5，见 §1 末条与 §4 末节），它提供编排与后端面，不参与解码。
 
 ---
 
@@ -44,6 +45,13 @@ Layer 3  共享 UX 契约                统一控制集 + 快捷键（三端对
   同一份 UI 下面挂多个可换引擎时，把「选哪个内核 / 进程怎么管 / 能力差在哪」收进一个门面，
   UI 只依赖端口的超集 + **显式能力声明 `caps`**。差异**声明**而不是嗅探 —— 假装两个内核一样，
   问题只会在运行时炸。
+- **统一宿主 `host/` 是 Layer 2 之上的「编排层」（Phase 5 / S5）**：它跑在 Node 上，用
+  Cordis 把「三端各自的后端面」重写成可插拔插件。**它不参与解码、不合并运行时**，
+  只做三件事：**枚举聚合**（`ctx.media`）、**深链分发**（`planOpen`/`open`）、
+  **后端面托管**（`ctx.web` 上的 `/api/list`、`/media`、`/ws`、`/remote`）。
+  配置形态学 dsh：基座 → bundle → profile → patch，`--dump-config` 打印实际启动后的插件树。
+  它与 Layer 1/2 的关系是「**消费**」，不是「替换」：来源适配器照样调各端自己的实现，
+  换掉的只是原先各自为政的 HTTP 后端（`localplayer/server.py` 已被它覆盖，见 §4）。
 
 ---
 
@@ -161,6 +169,25 @@ interface CastTransport {
 
 > PluginPlayer 源码已并入 `pluginplayer/` 并实际阅读：C++ 引擎层以 `PP_MediaInfo` 承载当前媒体技术信息；媒体枚举/来源已通过 Cordis JS 插件 `media-library` 落地（扫描目录产出 `MediaItem[]`）。已在 SDK 定义 `PP_MediaItem` 作为 `MediaItem` 的 C ABI 镜像；该结构体为新增、不修改任何已有 `PP_*` 字段，**无需递增 `PP_ABI_VERSION`**。
 
+### players-unified host（统一 Cordis 宿主，Phase 5 / S5）
+
+`host/` 也是 Layer 2 的一个宿主，只是它**不是播放器**，而是「编排 + 后端面」宿主。
+它与三端的关系、以及三端哪些东西被它接管，逐个端口列清楚：
+
+| 端口 | 映射方式 |
+|---|---|
+| `MediaSource` | ✅ 已落地：三个来源适配器插件（`host/src/sources/{pluginplayer,localplayer,daily}.mjs`）各自把枚举函数注册进 `ctx.media`，注册是**可撤销副作用**（`ctx.effect`），所以整组来源能被 profile/patch 关掉。对应各端原有实现：PluginPlayer → `GET http://127.0.0.1:7913/api/library`（带 `X-PP-Token`）、localplayer → `GET /api/list`、daily_player → 子进程跑 `LocalFileSource.list()`。聚合结果与 `launcher.aggregate()` 在真实 fixture 上**逐项一致**（`host/tests/parity.mjs` 10/10）。 |
+| `PlayerEngine` | ❌ 不实现，**有意为之**：宿主不解码。它只把「该由谁播放」算成一个动作（`planOpen`：`rpc` / `browser` / `spawn`）再分发。 |
+| `CastTransport` | ✅ **信令侧**已接管：`host/src/web/remote.mjs` 提供 `/ws`（自写 RFC6455，`host/lib/ws.mjs`）与 `/remote` 观看页，状态机是 `localplayer/server.py` 的逐行移植（纯模块 `host/src/web/signaling.mjs`），A/B 对拍逐条一致（`host/tests/remote-parity.mjs` 16/16）。媒体面（WebRTC 编解码）仍在扩展侧，宿主不碰。 |
+| `SubtitleProvider` | ❌ 不实现（属播放端）。 |
+| localplayer 的 HTTP 后端 | ✅ **被接管**：`/api/list`、`/media/<file>`、`/ws`、`/remote` 现在由宿主同一端口（默认 5000）提供，**扩展端零改动**（它连的地址没变）。`server.py` 保留为「纯 python 环境下的退路」，但已是第二实现。 |
+
+> 为什么值得这么做：原先「枚举聚合」在 `launcher/server.mjs`（独立进程、独立配置），
+> 「媒体清单 + 信令」在 `localplayer/server.py`（Flask），两者各有一套来源配置、两套故障模型。
+> 收进宿主后这些变成**同一棵插件树上的条目**：profile 决定谁在跑，`--dump-config` 一眼看到
+> 实际启用了什么，`disabled` 能整组关掉，patch 能只改一个参数。
+> 宿主**不做**的：跨语言源码合并、解码、UI 统一（§0 原则 1 与 §8 仍然成立）。
+
 ---
 
 ## 5. 共享 UX 契约（Layer 3，弱约定）
@@ -217,6 +244,12 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
     - **实测三层**：门面单测 44 项全绿（`tests/test_kernel.py`）；真机 E2E **23/23**（`daily_player/e2e_kernel.py`，报告 `docs/kernel-e2e-report.json`）；GUI 冒烟（真实 Tk root、非嵌入路径）通过，`on_close()` 后残留进程 **0**。
     - **实测抓到并修掉 2 个真问题**：① 控制通道**默认不推任何事件**，不 `topic.subscribe(app.fullscreen)` 就永远收不到全屏事件（已加入 `DEFAULT_TOPICS` 并在接线层断言）；② snapshot 插件计数器**每进程归零**，会覆盖白名单目录里上一轮的同名文件 → 只比文件名的中转实现会误报"截图失败"（改为比 `mtime+size`，中转件复制后删除，已加回归）。详见评估文档 §11。
   - 剩余缺口（均非阻塞）：画面无法嵌入外部窗口（S2，需改 C++ 用 `SDL_CreateWindowFrom`）、播放列表需 UI 侧自建、分发需带预编译 exe。详见评估文档 §9。
+- **Phase 5**：统一 Cordis 宿主（`host/`，把三端的「后端面」收成一棵可插拔插件树）。✅ **S5-1 / S5-2 / S5-3 全部落地并实测通过**，详见 `host/README.md` 与 [docs/phase4-kernel-assessment.md](docs/phase4-kernel-assessment.md) §12：
+  - **S5-1 宿主骨架**：形态学 dsh（Profile → Bundle → Patch 分层合成）+ 自建嵌套分组插件（loader 自带的 `Group` 实测是**平铺**的，拿不到分层 id）+ `ctx.media` 服务 + `--dump-config` 溯源。`ctx.media.aggregate()` 与 `launcher.aggregate()` 在真实数据上逐项一致（10/10），loader 语义探针 27/27。
+  - **S5-2 列表面**：`localplayer` 的 `/api/list` + `/media/<file>` 收成 Cordis 插件，与 python `media_lib.build_media_items()` **逐字段 + 键顺序**一致（27/27），并补了单段 Range。
+  - **S5-3 投送面**：**零依赖手写 RFC6455**（`host/lib/ws.mjs`）+ `/ws` 信令中继 + `/remote` 观看页。帧级验收 36/36（含 undici 真客户端互操作与非法帧关闭码），信令状态机与 python `server.py` **跨语言 A/B 对拍逐条一致**（16/16）。
+  - **对拍当场抓出的真 bug**：`server.py` 的 `ws_signaling()` 因 `_last_meta` 的局部变量语义必然抛 `UnboundLocalError` → **任何 viewer 一连接 `/ws` 就 500**，网页投送从接收端不可用。已修（`global _last_meta`，`localplayer/CHANGELOG.md`）。
+  - 宿主**不做**的事（有意）：跨语言源码合并、解码、UI 统一。§0 原则 1（物理整合）与 §8 的硬约束因此未变。
 
 ## 8. 风险与未决
 
@@ -224,3 +257,7 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
 - daily_player 无插件/无网络，其适配器需要新增最小抽象层（仅结构调整）。
 - PluginPlayer 内部接口已在 P0-1 读码探明并落地「媒体源」Cordis 插件（`media-library`），§4 映射已对齐；引擎层/UX（§5）快捷键等仍待补全。
 - ~~统一启动器若要真正播放跨端媒体，需解决「谁来解码」：本地路径在浏览器端无法直接 `file://` 播放……Phase 3 需决策。~~ → **Phase 3 已决策并落地**：**不跨端解码**，改为**深链到拥有该媒体的那一端**（各端用自己的引擎播放）。启动器只负责「枚举聚合 + 路由」，本地路径不会被塞给浏览器端，§8 原硬约束因此消解。
+- **宿主带来的新面（Phase 5）**：`localplayer` 的 python 后端已可被宿主完全替代，于是同一份能力有了**两套实现**（python / Node）—— 这会分叉。处理办法：宿主侧用 A/B 对拍把「一致」钉成可回归断言（`host/tests/library-parity.mjs`、`remote-parity.mjs`），
+  并且**发现参照实现有 bug 时先修参照实现再做对拍**（S5-3 就撞上了 `_last_meta` 那个必崩 bug）。
+  `server.py` 的定位相应变为「没有 Node 时的退路」，不再是唯一真相；若将来只留一条实现，应留宿主这条（它有三套验收报告 + 一个 `--check` 门禁）。
+- **宿主不接管的部分**：PluginPlayer 的 `/api/library`（它自带 token 鉴权与写白名单）与 daily_player 的 `play.py`（它是终端的播放器进程）仍是各自独立进程，宿主只深链过去。统一到此为止是**有意**的取舍，不是没做完。

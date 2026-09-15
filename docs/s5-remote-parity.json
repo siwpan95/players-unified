@@ -1,0 +1,292 @@
+{
+  "schema": "players-unified/s5-remote-parity/1",
+  "generatedAt": "2026-09-15T01:23:30.927Z",
+  "sides": {
+    "python": {
+      "interpreter": "F:/Python314/python.exe",
+      "entry": "localplayer/server.py",
+      "stack": "Flask + flask-sock",
+      "port": 9503,
+      "log": "C:\\Users\\13122\\AppData\\Local\\Temp\\pu-py-1789435407113.log"
+    },
+    "host": {
+      "entry": "host/src/web/remote.mjs + host/src/web/signaling.mjs",
+      "transport": "host/lib/ws.mjs（自写 RFC6455）",
+      "port": 9504
+    }
+  },
+  "client": "Node 内置 undici WebSocket（v22.22.2），两侧共用同一份剧本",
+  "transcript": {
+    "python": {
+      "viewer": [
+        {
+          "type": "meta",
+          "title": "第一集",
+          "artist": "某人"
+        },
+        {
+          "type": "answer",
+          "sdp": {
+            "type": "answer",
+            "sdp": "SDP-1"
+          }
+        }
+      ],
+      "sender": [
+        {
+          "type": "offer-request"
+        },
+        {
+          "type": "candidate",
+          "candidate": {
+            "candidate": "c1"
+          }
+        },
+        {
+          "type": "viewer-count",
+          "count": 1
+        },
+        {
+          "type": "offer-request"
+        },
+        {
+          "type": "candidate",
+          "candidate": {
+            "candidate": "c2"
+          }
+        },
+        {
+          "type": "viewer-count",
+          "count": 0
+        },
+        {
+          "type": "viewer-count",
+          "count": 0
+        },
+        {
+          "type": "viewer-count",
+          "count": 1
+        },
+        {
+          "type": "offer-request"
+        },
+        {
+          "type": "candidate",
+          "candidate": {
+            "candidate": "anon1"
+          }
+        }
+      ],
+      "viewer2": [
+        {
+          "type": "meta",
+          "title": "第一集",
+          "artist": "某人"
+        }
+      ],
+      "viewer3": [
+        {
+          "type": "meta",
+          "title": "第一集",
+          "artist": "某人"
+        },
+        {
+          "type": "sender-gone"
+        }
+      ],
+      "anon": []
+    },
+    "host": {
+      "viewer": [
+        {
+          "type": "meta",
+          "title": "第一集",
+          "artist": "某人"
+        },
+        {
+          "type": "answer",
+          "sdp": {
+            "type": "answer",
+            "sdp": "SDP-1"
+          }
+        }
+      ],
+      "sender": [
+        {
+          "type": "offer-request"
+        },
+        {
+          "type": "candidate",
+          "candidate": {
+            "candidate": "c1"
+          }
+        },
+        {
+          "type": "viewer-count",
+          "count": 1
+        },
+        {
+          "type": "offer-request"
+        },
+        {
+          "type": "candidate",
+          "candidate": {
+            "candidate": "c2"
+          }
+        },
+        {
+          "type": "viewer-count",
+          "count": 0
+        },
+        {
+          "type": "viewer-count",
+          "count": 0
+        },
+        {
+          "type": "viewer-count",
+          "count": 1
+        },
+        {
+          "type": "offer-request"
+        },
+        {
+          "type": "candidate",
+          "candidate": {
+            "candidate": "anon1"
+          }
+        }
+      ],
+      "viewer2": [
+        {
+          "type": "meta",
+          "title": "第一集",
+          "artist": "某人"
+        }
+      ],
+      "viewer3": [
+        {
+          "type": "meta",
+          "title": "第一集",
+          "artist": "某人"
+        },
+        {
+          "type": "sender-gone"
+        }
+      ],
+      "anon": []
+    },
+    "closes": {
+      "python": {
+        "viewer2": 1000,
+        "viewer": 1000,
+        "sender": 1000,
+        "viewer3": 1006
+      },
+      "host": {
+        "viewer2": 1000,
+        "viewer": 1000,
+        "sender": 1000,
+        "viewer3": 1003
+      }
+    }
+  },
+  "intentionalDifferences": [
+    {
+      "item": "非法消息的关闭码",
+      "python": "json.loads 抛异常 → 连接被带崩，客户端看到 1006",
+      "host": "显式以 1003（unsupported data）关闭",
+      "why": "携带明确关闭码便于定位；消息序列行为一致"
+    },
+    {
+      "item": "升级请求的 Origin 校验",
+      "python": "完全不校验（任意网页都能连上来当接收端）",
+      "host": "同源 + chrome-extension:// 放行，其余 403",
+      "why": "挡掉任意网页；放行扩展以保证 localplayer 零改动"
+    }
+  ],
+  "checks": [
+    {
+      "name": "A 侧 python/flask-sock 后端已起（被替代的那个）",
+      "ok": true,
+      "detail": "port=9503 log=C:\\Users\\13122\\AppData\\Local\\Temp\\pu-py-1789435407113.log"
+    },
+    {
+      "name": "B 侧宿主 /ws 已监听",
+      "ok": true,
+      "detail": "port=9504"
+    },
+    {
+      "name": "剧本两侧都没有踩到「期望条数没等到」的超时",
+      "ok": true,
+      "detail": "{\"python\":[],\"host\":[]}"
+    },
+    {
+      "name": "每个对端收到的消息序列逐条一致（python vs 宿主）",
+      "ok": true,
+      "detail": "5 个对端：viewer, sender, viewer2, viewer3, anon"
+    },
+    {
+      "name": "语义锁：发送端晚于接收端上线 → 第一条是 offer-request（viewer 上线时不发 count:1）",
+      "ok": true,
+      "detail": "[\"offer-request\",\"candidate\",\"viewer-count:1\",\"offer-request\",\"candidate\",\"viewer-count:0\",\"viewer-count:0\",\"viewer-count:1\",\"offer-request\",\"candidate\"]"
+    },
+    {
+      "name": "语义锁：viewer 掉线两次都发 count:0（孤儿连接也发，与 python 一致）→ 序列为 1,0,0,1",
+      "ok": true,
+      "detail": "[1,0,0,1]"
+    },
+    {
+      "name": "语义锁：晚加入的接收端拿到缓存的 meta",
+      "ok": true,
+      "detail": "{\"type\":\"meta\",\"title\":\"第一集\",\"artist\":\"某人\"}"
+    },
+    {
+      "name": "语义锁：meta 既缓存也照常转发给当前接收端",
+      "ok": true,
+      "detail": "{\"type\":\"meta\",\"title\":\"第一集\",\"artist\":\"某人\"}"
+    },
+    {
+      "name": "语义锁：未声明角色者的消息按 python 语义中继给 sender",
+      "ok": true,
+      "detail": "[\"c1\",\"c2\",\"anon1\"]"
+    },
+    {
+      "name": "语义锁：发送端掉线只通知槽位里的接收端（viewer3），孤立的 viewer 不受影响",
+      "ok": true,
+      "detail": "{\"viewer3\":[\"meta\",\"sender-gone\"],\"viewer\":[\"meta\",\"answer\"]}"
+    },
+    {
+      "name": "非法消息（非 JSON）两侧都断开连接（关闭码不同，见下一项）",
+      "ok": true,
+      "detail": "{\"python\":1006,\"host\":1003}"
+    },
+    {
+      "name": "有意差异：宿主给明确关闭码 1003，python 是抛异常断连（客户端看到 1006）",
+      "ok": true,
+      "detail": "{\"python\":1006,\"host\":1003}"
+    },
+    {
+      "name": "观看页与 python 版同协议（关键 token 全在，客户端可与任一侧互通）",
+      "ok": true,
+      "detail": "{\"python\":9,\"host\":9,\"missing\":[]}"
+    },
+    {
+      "name": "观看页带专用 CSP（放开内联脚本与同源 ws，否则页面脚本被 default-src 'none' 挡死）",
+      "ok": true,
+      "detail": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src http://127.0.0.1:9504 ws://127.0.0.1:9504 http://localhost:9504 ws://loca"
+    },
+    {
+      "name": "对照：列表面仍是收紧的 default-src 'none'（CSP 是按面给的，不是一刀切）",
+      "ok": true,
+      "detail": "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; media-src '"
+    },
+    {
+      "name": "扩展端的信令地址仍是 ws://127.0.0.1:5000/ws（bundle 默认端口未变 → 扩展零改动）",
+      "ok": true,
+      "detail": "bundle web-face → web:server → config.port"
+    }
+  ],
+  "passed": 16,
+  "failed": 0,
+  "conclusion": "宿主 /ws 信令中继与 localplayer Flusk 后端在同一剧本下逐条一致；差异仅为有意收紧/明确化的两项"
+}

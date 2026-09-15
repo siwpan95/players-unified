@@ -54,6 +54,14 @@ def _notify_sender(msg):
 
 @sock.route('/ws')
 def ws_signaling(ws):
+    # `_last_meta` 必须显式声明为全局：下面第 84 行有 `_last_meta = msg` 赋值，
+    # 只要函数体里出现赋值，Python 就把这个名字当作**整个函数的局部变量**，
+    # 于是第 74 行那次读取会在赋值之前抛 UnboundLocalError ——
+    # 后果是「任何 viewer 一声明角色，/ws 就 500 断连」，发送端永远收不到
+    # offer-request，中继全废（网页投送从 viewer 侧根本用不了）。
+    # 这个 bug 是 host/tests/remote-parity.mjs 拿 python 后端做 A/B 对拍时
+    # 从 werkzeug 日志里抓出来的（对拍的价值就在这）。
+    global _last_meta
     role = None
     try:
         while True:

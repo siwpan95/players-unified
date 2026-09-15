@@ -5,6 +5,22 @@
 
 > **提交前自检**：运行 `python check_version.py` 校验 `manifest.json` 的 `version` 与本文档最新 `## [x.y.z]` 一致（已配 git pre-commit 钩子，不一致将阻止提交）。
 
+## [未发布] - 修复 `/ws` 信令必崩
+
+### 修复
+- **任何接收端一连接 `/ws` 就 500**：`server.py` 的 `ws_signaling()` 里 `_last_meta = msg` 这行赋值
+  让 `_last_meta` 成为**函数局部变量**，于是同一函数中先出现的那句 `if _last_meta is not None:`
+  抛 `UnboundLocalError: cannot access local variable '_last_meta'` ——
+  后果是接收端（`/remote` 观看页）声明角色的瞬间连接就被带崩，发送端**永远收不到 `offer-request`**、
+  中继全废，即「网页投送」从接收端根本不可用（发送端的 `viewer-count` 状态回传却是正常的，
+  所以症状看起来像「投送开关亮了但对方没画面」）。修复：函数内显式 `global _last_meta`。
+  `_peers` 不需要声明（只做原地改键，未重新绑定名字）。
+
+  > 发现方式：`host/tests/remote-parity.mjs` 拿本后端做**跨语言 A/B 对拍**（同一份剧本分别打
+  > python/flask-sock 与统一宿主 `host/`），werkzeug 日志里三次 500 的堆栈是直接证据。
+  > 统一宿主（`host/src/web/signaling.mjs`）是同一套状态机的 JS 移植，没有这个问题。
+  > 本修复是**参照实现**的修复 —— 不修它，对拍断言「两侧一致」就无从谈起。
+
 ## [1.3.4] - 2026-09-14
 
 ### 修复

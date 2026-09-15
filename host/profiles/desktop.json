@@ -1,0 +1,5 @@
+{
+  "$note": "Profile：desktop —— 桌面全功能。三端来源全开，并让宿主自己提供 HTTP 面（列表面来自 media_lib，端口与原 Flask 后端一致 5000），扩展端因此零改动。",
+  "bundles": ["sources", "web-face"],
+  "entries": []
+}

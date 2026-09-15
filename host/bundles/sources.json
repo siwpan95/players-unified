@@ -1,0 +1,54 @@
+{
+  "$note": "Bundle：三个来源端的适配器。各端的枚举/打开参数与 launcher/config.json 保持同形，方便 S5-1 的双跑对比。",
+  "entries": [
+    {
+      "id": "sources",
+      "$group": true,
+      "$note": "三端媒体来源",
+      "name": "./src/core/group.mjs",
+      "config": [
+        {
+          "id": "pluginplayer",
+          "name": "./src/sources/pluginplayer.mjs",
+          "config": {
+            "url": "http://127.0.0.1:7913/api/library",
+            "tokenFile": "pluginplayer/dist/config/rpc-token.txt",
+            "timeoutMs": 3000,
+            "open": {
+              "kind": "rpc",
+              "host": "127.0.0.1",
+              "port": 7911,
+              "tokenFile": "pluginplayer/dist/config/rpc-token.txt"
+            }
+          }
+        },
+        {
+          "id": "localplayer",
+          "name": "./src/sources/localplayer.mjs",
+          "config": {
+            "url": "http://127.0.0.1:5000/api/list",
+            "timeoutMs": 3000,
+            "open": { "kind": "browser" }
+          }
+        },
+        {
+          "id": "daily",
+          "name": "./src/sources/daily.mjs",
+          "config": {
+            "dir": "library",
+            "moduleDir": "daily_player",
+            "python": "F:/Python314/python.exe",
+            "recursive": true,
+            "timeoutMs": 15000,
+            "open": {
+              "kind": "spawn",
+              "cmd": "F:/Python314/python.exe",
+              "args": ["play.py"],
+              "cwd": "daily_player"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

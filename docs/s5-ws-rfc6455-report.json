@@ -1,0 +1,207 @@
+{
+  "schema": "players-unified/s5-ws-rfc6455/1",
+  "generatedAt": "2026-09-15T01:23:26.753Z",
+  "implementation": "host/lib/ws.mjs（零依赖手写 RFC6455 服务端）",
+  "anchors": {
+    "rfcVector": "acceptKey(\"dGhlIHNhbXBsZSBub25jZQ==\") === \"s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\"（RFC6455 §1.3 官方示例）",
+    "independentClient": "Node 内置 undici WebSocket（v22.22.2）—— 第三方实现的真客户端，用于双向互操作",
+    "rawClient": "host/tests/helpers/raw-ws.mjs —— 只用 encodeFrame/FrameDecoder 构造非法帧"
+  },
+  "interoperability": {
+    "text": true,
+    "utf8": true,
+    "lengthSegments": [
+      "<126",
+      "126..65535",
+      ">=65536"
+    ],
+    "binary": true,
+    "permessageDeflate": "未协商（101 不含该头），双方均不压缩"
+  },
+  "checks": [
+    {
+      "name": "A1 acceptKey 与 RFC6455 官方示例向量一致",
+      "ok": true,
+      "detail": "得到 s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+    },
+    {
+      "name": "A2 正常握手 → 101 + Upgrade/Connection/Accept 头齐全",
+      "ok": true,
+      "detail": "101 accept=jSHYSxJHp+shKqSV9zRoiBXPlxk="
+    },
+    {
+      "name": "A3 客户端请求 permessage-deflate 也不协商（101 里不出现该头）",
+      "ok": true,
+      "detail": "extensions=(无)"
+    },
+    {
+      "name": "A4 Upgrade 头不是 websocket（h2c）→ 400",
+      "ok": true,
+      "detail": "status=400"
+    },
+    {
+      "name": "A4b 直接 GET /ws（无升级）→ 400 并给出人话提示",
+      "ok": true,
+      "detail": "status=400"
+    },
+    {
+      "name": "A4c POST 到 HTTP 面 → 405（方法闸门在 ctx.web 统一拦）",
+      "ok": true,
+      "detail": "status=405"
+    },
+    {
+      "name": "A5 版本不是 13 → 426 且回 Sec-WebSocket-Version: 13",
+      "ok": true,
+      "detail": "status=426 version=13"
+    },
+    {
+      "name": "A6 Sec-WebSocket-Key 不是 16 字节 → 400",
+      "ok": true,
+      "detail": "status=400"
+    },
+    {
+      "name": "A7 没有处理器认领的路径 → 404",
+      "ok": true,
+      "detail": "status=404"
+    },
+    {
+      "name": "A8 升级请求的 Host 不在白名单 → 403（挡 DNS rebinding）",
+      "ok": true,
+      "detail": "status=403"
+    },
+    {
+      "name": "A9 升级请求的 Origin 跨域 → 403（python 侧不看 Origin，这是收紧）",
+      "ok": true,
+      "detail": "status=403"
+    },
+    {
+      "name": "A10 Origin 是 chrome-extension:// → 放行（localplayer 扩展零改动的前提）",
+      "ok": true,
+      "detail": "status=101"
+    },
+    {
+      "name": "A11 Origin 同源 → 放行",
+      "ok": true,
+      "detail": "status=101"
+    },
+    {
+      "name": "B1 文本往返（undici 真客户端 ↔ 手写服务端）",
+      "ok": true,
+      "detail": "[\"hello\"]"
+    },
+    {
+      "name": "B2 客户端 close(1000) → 服务端回 1000（正常关闭握手）",
+      "ok": true,
+      "detail": "close={\"type\":\"close\",\"code\":1000,\"reason\":\"\"}"
+    },
+    {
+      "name": "B3 多字节 UTF-8（中文/emoji）往返不被切坏",
+      "ok": true,
+      "detail": "[\"中文·emoji🧠·混\",\"中中中中中中中中中中中中\"]"
+    },
+    {
+      "name": "B4 200 字节（16 位长度段）与 65536 字节（64 位长度段）都原样往返",
+      "ok": true,
+      "detail": "{\"got0\":200,\"got1\":65536}"
+    },
+    {
+      "name": "B5 二进制帧往返（含 0x00/0xff 边界字节）",
+      "ok": true,
+      "detail": "len=64"
+    },
+    {
+      "name": "C1 未掩码的客户端文本帧 → 1002（RFC 要求客户端必须掩码）",
+      "ok": true,
+      "detail": "close=1002 error=(无)"
+    },
+    {
+      "name": "C2 RSV1 位非零（未协商任何扩展）→ 1002",
+      "ok": true,
+      "detail": "close=1002"
+    },
+    {
+      "name": "C3 未知 opcode 0x3 → 1002",
+      "ok": true,
+      "detail": "close=1002 error=(无)"
+    },
+    {
+      "name": "C4 控制帧被分片（ping FIN=0）→ 1002",
+      "ok": true,
+      "detail": "close=1002 error=(无)"
+    },
+    {
+      "name": "C5 控制帧载荷 126 字节 → 1002",
+      "ok": true,
+      "detail": "close=1002 error=(无)"
+    },
+    {
+      "name": "C6 没有开始分片就发 CONTINUATION → 1002",
+      "ok": true,
+      "detail": "close=1002 error=(无)"
+    },
+    {
+      "name": "C7 文本帧非法 UTF-8（0xC3 0x28）→ 1007",
+      "ok": true,
+      "detail": "close=1007 error=(无)"
+    },
+    {
+      "name": "C8 close 帧只有 1 字节载荷 → 1002",
+      "ok": true,
+      "detail": "close=1002 error=(无)"
+    },
+    {
+      "name": "C9 close code 1004（保留值）→ 1002",
+      "ok": true,
+      "detail": "close=1002 error=(无)"
+    },
+    {
+      "name": "C10 超过 maxPayload（/ws-small 上限 256，发 300）→ 1009",
+      "ok": true,
+      "detail": "close=1009 error=(无)"
+    },
+    {
+      "name": "C11 分片消息（he + llo）重组为 hello",
+      "ok": true,
+      "detail": "[\"hello\"]"
+    },
+    {
+      "name": "C12 多字节字符被切在两个分片之间，重组后仍是合法 UTF-8",
+      "ok": true,
+      "detail": "[\"中\"]"
+    },
+    {
+      "name": "C13 分片之间插入 ping：先回 pong（载荷一致）再给完整消息",
+      "ok": true,
+      "detail": "pong=PING message=frag-end"
+    },
+    {
+      "name": "C14 ping 载荷 125 字节（上限）→ pong 原样回 125 字节",
+      "ok": true,
+      "detail": "len=125"
+    },
+    {
+      "name": "C15 收到对端 close(1000) → 回 close(1000)",
+      "ok": true,
+      "detail": "close=1000"
+    },
+    {
+      "name": "D1 encodeFrame 三种长度段的头布局 + 掩码位/掩码键正确",
+      "ok": true,
+      "detail": "{\"f1\":[3,5],\"f2\":[126,200],\"f3\":[127,65536]}"
+    },
+    {
+      "name": "D2 逐字节喂入与整块喂入结果一致（流式解析无状态泄漏）",
+      "ok": true,
+      "detail": "{\"atOnceText\":[\"分块喂入🧠\"],\"bytewiseText\":[\"分块喂入🧠\"],\"chunks\":22}"
+    },
+    {
+      "name": "D3 出现协议错误后解析器自我失效（后续 push 不再解析半截数据）",
+      "ok": true,
+      "detail": "first=error/1002 after=0"
+    }
+  ],
+  "passed": 36,
+  "failed": 0,
+  "wsChecks": 36,
+  "conclusion": "手写 RFC6455 通过帧级验收：与 undici 真客户端双向互操作，非法帧按 RFC 用 1002/1007/1009 关闭"
+}

@@ -1,0 +1,9 @@
+{
+  "$note": "Patch 示例：本机自测时把远端来源的超时压短，免得每次都要等 3 秒。演示 config 的逐键深合并 —— 只写要改的那一个键，其余继承 bundle。",
+  "entries": [
+    {
+      "id": "sources:pluginplayer",
+      "config": { "timeoutMs": 800 }
+    }
+  ]
+}

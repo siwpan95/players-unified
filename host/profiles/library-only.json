@@ -1,0 +1,8 @@
+{
+  "$note": "Profile：library-only —— 只有本地目录。用于没构建 pluginplayer、也没启 localplayer 后端的机器。演示「整个来源靠一层 disabled 关掉」，这正是 Profile/Patch 要比改代码更方便的地方。",
+  "bundles": ["sources"],
+  "entries": [
+    { "id": "sources:pluginplayer", "disabled": true },
+    { "id": "sources:localplayer", "disabled": true }
+  ]
+}

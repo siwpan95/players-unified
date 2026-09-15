@@ -27,6 +27,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-store/
+# @cordisjs/plugin-loader 会在 baseUrl 所在 scope 自动生成 .cordis/ 裸名解析垫片
+host/.cordis/
 
 # --- 日志 / 运行时状态 ---
 logs/

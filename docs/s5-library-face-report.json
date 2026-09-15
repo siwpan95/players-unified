@@ -1,0 +1,175 @@
+{
+  "schema": "players-unified/s5-library-face/1",
+  "generatedAt": "2026-09-15T01:23:25.094Z",
+  "python": {
+    "interpreter": "F:/Python314/python.exe",
+    "module": "localplayer/media_lib.py",
+    "items": 7
+  },
+  "js": {
+    "core": "host/src/web/library-core.mjs",
+    "face": "host/src/web/library-face.mjs",
+    "items": 7
+  },
+  "fixture": {
+    "mediaDir": "C:\\Users\\13122\\AppData\\Local\\Temp\\puh-lib-oJ7p3w\\media",
+    "files": [
+      "a 第一集.mkv",
+      "b 第二集.mp4",
+      "c 插曲.mp3",
+      "d 视频.webm",
+      "e 歌.flac",
+      "F 大写.MP4"
+    ],
+    "quirks": [
+      "目录 fake.mp4 入列",
+      "子目录不递归",
+      "note.txt 跳过",
+      "大写扩展名识别"
+    ]
+  },
+  "parity": {
+    "coreEqualsPython": true,
+    "httpEndpointEqualsPython": true
+  },
+  "checks": [
+    {
+      "name": "python 真值取到（media_lib.build_media_items）",
+      "ok": true,
+      "detail": "python 列出 7 项"
+    },
+    {
+      "name": "纯 core 与 python media_lib 逐字段一致",
+      "ok": true,
+      "detail": "{\"js\":7,\"python\":7,\"diff\":-1}"
+    },
+    {
+      "name": "键顺序也一致（不是「内容相同但顺序不同」）",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "契约锁：非媒体扩展名被跳过",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "契约锁：子目录内的媒体不入列（非递归）",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "契约锁：名叫 fake.mp4 的目录也入列（与 python 侧同样不判断 isfile）",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "契约锁：大写扩展名同样识别为 video",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "过渡别名 name/type/path 都在",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "GET /api/list 返回 200 + application/json",
+      "ok": true,
+      "detail": "status=200 ctype=application/json; charset=utf-8"
+    },
+    {
+      "name": "GET /api/list 内容与 python 真值一致",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "GET /api/list 带安全头",
+      "ok": true,
+      "detail": "{\"nosniff\":\"nosniff\",\"frame\":\"DENY\"}"
+    },
+    {
+      "name": "GET /api/list 不带任何 CORS 头（跨域预检必然失败）",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "GET /media/<file> 字节与磁盘完全一致并标出 video/mp4",
+      "ok": true,
+      "detail": "status=200 ctype=video/mp4 len=500/500"
+    },
+    {
+      "name": "Range 请求返回 206 + Content-Range + 正确切片（python 侧没有，宿主增强）",
+      "ok": true,
+      "detail": "status=206 content-range=bytes 10-19/500"
+    },
+    {
+      "name": "parseRange 单元：开区间 / 后缀区间 / 越界与非法值",
+      "ok": true,
+      "detail": "[{\"start\":10,\"end\":19},{\"start\":90,\"end\":99},null]"
+    },
+    {
+      "name": "路径穿越（URL 编码 %2F）被拒",
+      "ok": true,
+      "detail": "status=403"
+    },
+    {
+      "name": "路径穿越（原样 ../，绕开客户端归一化）被拒，且不泄露内容",
+      "ok": true,
+      "detail": "HTTP/1.1 404 Not Found"
+    },
+    {
+      "name": "路径穿越（反斜杠变体 %5C）同样被拒",
+      "ok": true,
+      "detail": "HTTP/1.1 403 Forbidden"
+    },
+    {
+      "name": "Host 头不在白名单 → 403（挡 DNS rebinding）",
+      "ok": true,
+      "detail": "HTTP/1.1 403 Forbidden"
+    },
+    {
+      "name": "Origin 头跨域 → 403（挡 CSRF）",
+      "ok": true,
+      "detail": "status=403"
+    },
+    {
+      "name": "OPTIONS 预检不通过 → 405",
+      "ok": true,
+      "detail": "status=405"
+    },
+    {
+      "name": "GET /favicon.ico → 204（与 python 侧一致）",
+      "ok": true,
+      "detail": "status=204"
+    },
+    {
+      "name": "未知路径 → 404",
+      "ok": true,
+      "detail": "status=404"
+    },
+    {
+      "name": "不存在的媒体文件 → 404",
+      "ok": true,
+      "detail": "status=404"
+    },
+    {
+      "name": "GET / 返回说明页",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "name": "扩展的 host_permissions 覆盖宿主监听地址（端口与 python 侧一致：5000 为默认）",
+      "ok": true,
+      "detail": "host_permissions=[\"http://localhost:5000/*\",\"http://127.0.0.1:5000/*\"]"
+    },
+    {
+      "name": "bundle 里 HTTP 面默认端口 = 5000（与 Flask 后端一致，扩展不用改配置）",
+      "ok": true,
+      "detail": "config={\"host\":\"127.0.0.1\",\"port\":5000}"
+    }
+  ],
+  "passed": 27,
+  "failed": 0,
+  "conclusion": "宿主列表面与 localplayer Flask 后端同输出，且安全防护与 Range 行为已实测"
+}
