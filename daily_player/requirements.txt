@@ -1,4 +1,8 @@
 # daily_player dependencies (auto-generated 2026-08-20)
+# 默认内核是 PluginPlayer：不需要任何 pip 包（只需 pluginplayer.exe，见 README「内核怎么找」）。
+# 下面两项仅「系统托盘」功能需要。
 Pillow
 pystray
-# vlc（本地程序 F:\VLC，非 pip 包；需 64 位版本以匹配 64 位 Python）
+# --- 可选内核 libVLC（只有用 --kernel=vlc 时才需要）---
+# pip install python-vlc
+# 并安装 VLC 播放器本体（本地程序 F:\VLC，非 pip 包；需 64 位版本以匹配 64 位 Python）

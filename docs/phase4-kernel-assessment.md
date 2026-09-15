@@ -14,14 +14,20 @@
 | Codis 有用 | ❌ 完全无关 | Redis 分布式代理，与本地播放器零交集（localplayer README L186 已述） |
 | Cordis 引入 localplayer | ❌ 不可行（不止是过度设计） | Cordis 要求 **Node.js ≥ 22 / ESM-only**；MV3 扩展无 Node 运行时 |
 | MediaMTX 引入 localplayer | ❌ 本地文件场景仍属多余 | MediaMTX 是**媒体路由器**，只转封装不转码，且不直接读本地文件 |
-| daily_player 换 PluginPlayer 内核 | ✅ **可行，且 S1 已实测通过** | PluginPlayer 已有 `--hidden` 无人值守模式 + 完整控制通道；S1 尖峰 13 项断言全绿（见 §8） |
+| daily_player 换 PluginPlayer 内核 | ✅ **可行，且已默认切过去** | PluginPlayer 已有 `--hidden` 无人值守模式 + 完整控制通道；S1 尖峰 13 项断言全绿（§8）、S3 补齐全屏（§10）、S4 落地默认内核（§11） |
 | 以 PluginPlayer 为内核做「三合一」 | ⚠️ **部分成立（≈2.5 合 1）** | 桌面端可真合流；浏览器端受 MV3 沙箱限制，只能"接流"不能"装内核" |
 
-**一句话**：内核替换这条线**值得做**（且 Phase 1/2 刚建的 `PlayerEngine` 端口正好就是替换缝）；
+**一句话**：内核替换这条线**值得做**（且 Phase 1/2 刚建的 `PlayerEngine` 端口正好就是替换缝），
+且 **S4 已让 daily_player 默认就跑在 PluginPlayer 上**；
 但"三端都采用 Cordis/MediaMTX"这条线**不成立**——Cordis 跑不进浏览器扩展，MediaMTX 是给直播源做桥的。
 
-> **2026-09-15 更新**：S0（适配器）与 S1（真实播放器尖峰）已完成并全绿，实测数据见 **§8**。
+> **2026-09-15 更新**：S0（适配器）/ S1（真实播放器尖峰）/ S3（全屏）已完成并全绿，见 **§8**、**§10**。
 > 关键数字：**控制通道往返 ≈ 16.7ms（正好一帧 @60fps）**，字幕 / 截图 / 进度 / 契约全部打通。
+>
+> **2026-09-15 更新（续）**：**S4「默认内核切到 PluginPlayer」已落地并实测通过**（见 **§11**）——
+> `daily_player/kernel.py` 收拢内核选择与进程托管，`play.py` 不再 `import vlc`，默认走 PluginPlayer、
+> 失败时**明确报错而不静默回落**。门面单测 44 项 + 真机 E2E 23 项 + GUI 冒烟三层全过；
+> 过程中实测抓到 2 个真问题（控制通道事件订阅缺失、截图同名覆盖）并已修复 + 加回归。
 
 ---
 
@@ -187,6 +193,7 @@ Redis 分布式集群代理（README L186 已定性）。本地单用户播放�
 | **S1** | 形态 A 尖峰：起 `pluginplayer.exe --hidden --rpc-port`，用最小 tkinter 面板驱动播放 | ✅ **已完成**（v0.5.0）。**13 项断言全绿**，实测数据见 §8；另附无 GUI 回归 14 项 |
 | **S2** | 若必须单窗口：给 PluginPlayer 加 `--embed <hwnd>`（`SDL_CreateWindowFrom`） | ⏸ 未启动。**仅在"必须单窗口"时才需要**——S1 证明双窗口形态已可用，故降级为可选 |
 | **S3** | 补齐 RPC 缺口：`app.fullscreen`（或原生插件命令兜底） | ✅ **已完成**（v0.6.0）。真实切换 + 事件广播 + `--hidden` 下明确失败，实测见 §10 |
+| **S4** | **daily_player 默认切内核**：内核选择/进程托管/能力门面收进 `kernel.py`，`play.py` 去掉 libVLC 专有调用 | ✅ **已完成**（v0.7.0）。默认 → PluginPlayer，找不到**明确报错不静默回落**；44 单测 + 23 真机 E2E + GUI 冒烟全过，实测见 §11 |
 | **搁置** | localplayer 引入 Cordis / MediaMTX | 运行时不兼容 / 场景不匹配；若将来接直播源再按 README L193 触发 |
 
 ---
@@ -209,8 +216,8 @@ F:/Python314/python.exe daily_player/spike_s1.py
 ```
 
 脚本会自己拉起 `pluginplayer.exe --hidden --no-audio --rpc-port <随机> --rpc-token <随机> --write-dir <out>`，
-跑完 7 组测量后 `app.quit` 收进程，并把结构化结果写到 `docs/s1-spike-report.json`。
-**退出码 0 = 全绿**；实际耗时 9.68s。
+跑完 8 组测量后 `app.quit` 收进程，并把结构化结果写到 `docs/s1-spike-report.json`。
+**退出码 0 = 全绿**；实际耗时 10.69s（含 S3 全屏组；S1 阶段为 9.68s / 7 组）。
 
 ### 8.1 连接与握手
 
@@ -303,7 +310,7 @@ F:/Python314/python.exe daily_player/spike_s1.py
 |---|---|
 | 内核替换可行吗？ | ✅ **可行且已跑通**，不是纸面结论 |
 | 需要立刻做 S2（单窗口嵌入）吗？ | ⏸ **不必**。双窗口形态功能完整；S2 只在"必须单窗口"时才值得动 C++ 重编译 |
-| daily_player 现在就可以默认切到 PluginPlayer 吗？ | ⚠️ **还差一点**。~~缺 `app.fullscreen`~~ → **S3 已补齐**；剩余：播放列表需 UI 侧自建、分发要带预编译 exe。建议先保持双内核可切换 |
+| daily_player 现在就可以默认切到 PluginPlayer 吗？ | ✅ **已默认切**（见 §11）。~~缺 `app.fullscreen`~~ → S3 已补齐；~~双内核可切换~~ → `--kernel=vlc\|auto` 仍可显式切，只有 `auto` 才允许回落。剩余非阻塞项：分发需带预编译 exe |
 | localplayer 端？ | ⏸ 维持搁置 |
 
 ---
@@ -346,3 +353,103 @@ players-unified 的 `.gitignore` 排除了 `dist/` 与 `vendor/`，所以构建�
 本次复现用的是：`vendor/` 目录联接到原仓库 `G:\repos\pluginplayer\vendor`，
 `dist/` 从原仓库拷一份（59 文件），再 `F:/Python314/python.exe build.py --core`（g++ 16.1.0，57.4s）。
 `vendor/` 与 `dist/` 均被忽略，不会进版本库。
+
+---
+
+## 11. S4 实测：默认内核切到 PluginPlayer（2026-09-15，通过）
+
+S1/S3 证明的是「**能**换内核」（协议通、能力齐）。S4 做的是「**默认就**换内核」——
+把"选哪个内核"从散落在 UI 里的 `if` 收成一个入口，让 `play.py` 只面对
+**端口 + 能力声明**。
+
+### 11.1 新增/改动的文件
+
+| 文件 | 角色 |
+|---|---|
+| `daily_player/kernel.py` | **新增**。`choose_kernel()` 纯函数决策 / `PluginPlayerProcess` 进程托管 / `Kernel` 门面 + `VlcKernel` / `PluginPlayerKernel` |
+| `daily_player/play.py` | 重写内核接线：**不再 `import vlc`**，全程只碰 `self.kernel`；新增 `--kernel=NAME` |
+| `daily_player/player_engine_rpc.py` | 新增 `subscribeDefaults()`（见 11.3）、事件缓冲上限 |
+| `daily_player/e2e_kernel.py` | **新增**。门面层端到端探针（需要真实 exe，缺条件则跳过） |
+| `daily_player/tests/test_kernel.py` | **新增**。44 项断言，零三方依赖、不启动真实播放器 |
+| `docs/kernel-e2e-report.json` | E2E 实测报告（机器可读） |
+
+### 11.2 能力差异：声明，而不是嗅探
+
+两个内核**真的不一样**，硬装作一样只会在运行时炸。所以门面把差异收进 `caps`：
+
+| 能力 | `vlc` | `pluginplayer` | UI 的应对 |
+|---|---|---|---|
+| `embed`（画面嵌进 tk 窗口） | ✅ | ❌ | 非嵌入时明确显示「画面在 PluginPlayer 窗口」，不装作有画面 |
+| `externalFullscreen` | ➖ 不需要 | ✅ | 面板全屏时同步切播放器窗口（S3） |
+| `subtitleTracks`（读内嵌轨） | ✅ | ✅ | 统一走 `subtitle_tracks()` |
+| `disableSubtitle`（经内核关字幕） | ✅ `video_set_spu(-1)` | ❌ RPC 不接受 -1 | 下拉框显示「关闭（仅面板字幕）」并如实告知 |
+| 截图落盘到任意目录 | ✅ | ⚠️ 受写入白名单限制 | 门面内部中转（先落 `--write-dir`，再复制到目标路径） |
+
+**决策表**：默认 = `pluginplayer`；**找不到 exe 时直接报错，不静默回落**（默默换成另一个
+引擎会让人以为是同一个东西）。想要回落必须显式 `--kernel=auto`。
+
+### 11.3 两个实测才暴露的问题
+
+**(1) 控制通道默认不推任何事件 —— 不订阅就永远收不到 `app.fullscreen`。**
+
+S1 里能收到事件，是因为 spike **显式**调了 `rpc.subscribe('app.fullscreen')`；
+`PluginPlayerRpcEngine` 自己从来没订阅过。后果很隐蔽：`setFullscreen()` 调用成功、
+本地状态也对，但"用户在播放器窗口按 F"这类变化再也同步不回来。
+
+修复：`DEFAULT_TOPICS = ('app.fullscreen',)` + `subscribeDefaults()`，在
+`connect_engine()`（进程托管）与 `connect()`（类方法）两处接线。只订阅**真的会被消费**的
+主题 —— 没人 `takeEvents()` 的主题只会白占缓冲。顺带给事件缓冲加了 `MAX_BUFFERED_EVENTS = 512`
+上限，防"订阅了广播但没人取走"的无界增长。
+
+**(2) 截图插件计数器每进程归零 —— 只比文件名会误报失败。**
+
+GUI 冒烟里 `app.screenshot()` 报「截图失败」，紧接着直接调 `kernel.screenshot()` 却成功。
+原因：`snapshot_NNNN.png` 的序号是**每进程**的，新起一次播放器又从 `0001` 开始，
+覆盖了白名单目录里上一轮留下的同名文件 → 只比"文件名有没有新增"的实现判定"没有新文件"。
+
+修复：按 `(mtime_ns, size)` 判断"哪一张是这次的"，并把中转件复制后删除（每张数 MB，不留垃圾）。
+回归用例已补进 `tests/test_kernel.py`（模拟新进程计数器归零覆盖同名文件）。
+
+> 这条正是"能跑一遍 GUI 就别只跑单测"的价值：单测里假 engine 每次都写新名字，
+> 逻辑自洽；真实插件的命名策略不同，问题只在真机上显形。
+
+### 11.4 实测结果
+
+**A. 单测**（`tests/test_kernel.py`，不需要 exe）：**44 项全绿**，`py_compile` 无 `SyntaxWarning`。
+覆盖决策矩阵（含未知内核名 / 别名 / 大小写空格）、exe 查找优先级、`build_cmd` 的
+`--hidden`/端口/令牌/白名单、能力补齐、字幕轨回落链（`title → lang → codec`）、
+截图中转与同名覆盖回归、`Kernel.__getattr__` 转发、以及**接线断言**
+（`connect_engine()` 必须 auth 后再订阅 `app.fullscreen`）。
+
+**B. 门面端到端**（`daily_player/e2e_kernel.py`，真实 exe + `sample.mp4`）：**23/23**。
+
+| 断言 | 实测值 |
+|---|---|
+| 默认请求命中的内核 | ✅ `pluginplayer`（非 vlc 回落） |
+| 内核报出真实时长 | ✅ `8000 ms` |
+| 进度真实前进 | ✅ `30 ms → 1230 ms`（+1200） |
+| `PlayerState` 通过 schema 校验 | ✅ |
+| `setVolume(30)` / `setMuted(True)` / `setRate(1.5)` 回读 | ✅ `30` / `True` / `1.5` |
+| `seek(1000)` 后位置 | ✅ `1637 ms`（边播边跳，落在容差内） |
+| 截图（白名单中转） | ✅ `3687468 bytes`，PNG 魔数正确，落到请求的目标路径 |
+| `--hidden` 下全屏切换 | ✅ 如实返回 `False`（不假装成功） |
+| `shutdown()` | ✅ 子进程干净退出，无孤儿 |
+
+**C. GUI 冒烟**（真实 Tk root，非嵌入内核路径；`play.py` 的 UI 代码全程真实执行）：
+内核 `[kernel] pluginplayer`；`getState()` 真实进度 `3790/8000 ms`、时间标签 `00:00:03 / 00:00:08`、
+进度条 `467/1000` 自洽；音量 `55` 经 UI 下发回读一致；字幕下拉框显示
+`('关闭（仅面板字幕）', '外部字幕(.srt)')`（与 `disableSubtitle=False` 一致）；
+截图经 UI 入口报「截图已保存」；`on_close()` 后**残留进程数 0**。
+
+### 11.5 结论
+
+**「daily_player 默认切内核」已落地并实测通过**，不是纸面完成：
+
+- 默认内核 = PluginPlayer，`play.py` 里已无任何 libVLC 专有调用（`import vlc` 已移除）；
+- 两个内核的差异以 `caps` 显式声明，UI 据能力分支而不是猜；
+- 门面层 44 项单测 + 23 项真机 E2E + GUI 冒烟三层都过；
+- 实测抓到并修掉 2 个真问题（事件订阅缺失、截图同名覆盖），各有回归用例兜住。
+
+仍在的原有限制（**非阻塞**）：画面无法嵌入 tk 窗口（要单窗口得做 S2，改 C++）、
+播放列表仍是 UI 侧自建、`--hidden` 下全屏无意义、分发需带预编译 exe。
+

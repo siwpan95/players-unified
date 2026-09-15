@@ -40,6 +40,10 @@ Layer 3  共享 UX 契约                统一控制集 + 快捷键（三端对
 - **Layer 0/1 是跨端共享的「契约」**，以语言中立的 JSON Schema / 接口描述存在（本仓库维护）。
 - **Layer 2 是各端自己的代码**，只需让既有实现「长得像」契约即可，不需要改引擎。
 - **Layer 3 是 UI 层的弱约定**，不强制同一套控件实现，只对齐暴露的能力与快捷键。
+- **「内核门面」是 Layer 2 内部的一种组织方式**（daily_player 已落地，`daily_player/kernel.py`）：
+  同一份 UI 下面挂多个可换引擎时，把「选哪个内核 / 进程怎么管 / 能力差在哪」收进一个门面，
+  UI 只依赖端口的超集 + **显式能力声明 `caps`**。差异**声明**而不是嗅探 —— 假装两个内核一样，
+  问题只会在运行时炸。
 
 ---
 
@@ -127,15 +131,15 @@ interface CastTransport {
 
 ## 4. 各宿主适配器映射
 
-### daily_player（Python + libVLC）
+### daily_player（Python + tkinter；**默认内核 PluginPlayer**，可选 libVLC）
 | 端口 | 映射方式 |
 |---|---|
-| `PlayerEngine` | ✅ 已落地：`daily_player/player_engine.py` 的 `VlcPlayerEngine`（依赖注入 instance+player，**不 import vlc** 以便单测）。`load`→`media_new`+`set_media`、`seek`→`set_time`（毫秒直通）、`snapshot`→`video_take_snapshot(0,path,0,0)`、`getState`→`get_time/get_length/get_state/get_rate/audio_get_volume`；rate 夹 0.25..3、volume 夹 0..100。 |
-| `MediaSource` | ✅ 已落地：`daily_player/media_source.py` 的 `LocalFileSource.list()` 返回 `MediaItem[]`（见 `schema/media-item.schema.json`）。`play.py` 既有 `open_folder` 行为未改（仅结构抽取，不动 libVLC）。 |
-| `SubtitleProvider` | 复用现有 `parse_srt()` + `video_set_spu()`。 |
+| `PlayerEngine` | ✅ 已落地，两条实现同一端口：`daily_player/player_engine.py` 的 `VlcPlayerEngine`（依赖注入 instance+player，**不 import vlc** 以便单测；`load`→`media_new`+`set_media`、`seek`→`set_time`、`snapshot`→`video_take_snapshot(0,path,0,0)`）、`daily_player/player_engine_rpc.py` 的 `PluginPlayerRpcEngine`（走 PluginPlayer 控制通道，TCP + 换行分隔 JSON-RPC）。rate 夹 0.25..3、volume 夹 0..100。 |
+| `MediaSource` | ✅ 已落地：`daily_player/media_source.py` 的 `LocalFileSource.list()` 返回 `MediaItem[]`（见 `schema/media-item.schema.json`）。 |
+| `SubtitleProvider` | 外部字幕复用 `parse_srt()`（面板自绘，内核无关）；内嵌轨经 `kernel.subtitle_tracks()` / `select_subtitle()`（两个内核各自映射到 `video_set_spu` / `player.select_track`）。 |
 | `CastTransport` | 暂不支持（未来可加）。 |
 
-> 现状：单文件 `play.py`，**无抽象层**。适配器需先抽出最小 `PlayerEngine`/`MediaSource` 接口（仅改结构，不改 libVLC 行为）。
+> 现状：**内核选择与差异已收口在 `daily_player/kernel.py`**（`choose_kernel()` 决策 + `PluginPlayerProcess` 托管 + `Kernel` 门面与 `caps` 能力声明）。`play.py` 只依赖端口 + 能力声明，**已无 libVLC 专有调用**；默认 PluginPlayer，`--kernel=vlc|auto` 可切。
 
 ### localplayer（Chrome MV3 扩展）
 | 端口 | 映射方式 |
@@ -199,7 +203,7 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
 - **Phase 3**：统一启动器（枚举聚合 + 深链跳转）。✅ 已完成 —— `launcher/server.mjs`（Node 零依赖 + `index.html` UI）聚合三端 `MediaSource.list()`，单个来源故障只降级为 error 不拖垮整体；`POST /api/open` 按来源端深链：PluginPlayer → 控制通道 `player.open`、localplayer → 浏览器打开远端 URL、daily_player → `spawn python play.py <path>`。端到端验证见 `launcher/tests/e2e.mjs`。
 - **Phase 4（可选）**：跨宿主「引擎可替换」——用 PluginPlayer 的 FFmpeg 引擎驱动 daily_player 的 UI。✅ **评估完成 + S0/S1 已落地并实测通过**：可行性评估与实测数据见 [docs/phase4-kernel-assessment.md](docs/phase4-kernel-assessment.md)（§0 结论 / §8 实测）。结论要点：
   - **daily_player 端可行**：PluginPlayer 已有 `--hidden` 无人值守模式（`src/core/main.cpp:11`）+ 完整控制通道，且 Phase 2 的 `PlayerEngine` 端口正是替换缝 → S0 已落地 `daily_player/player_engine_rpc.py`（与 `VlcPlayerEngine` 同一端口，UI 可不改切换）。
-  - **S1 尖峰已实测通过**（`daily_player/spike_s1.py`，无人值守，13 项断言全绿，耗时 9.68s）：
+  - **S1 尖峰已实测通过**（`daily_player/spike_s1.py`，无人值守，**18 项断言全绿**，耗时 10.69s；含 S3 新增的全屏组）：
     - RPC 往返 **p50 ≈ 16.65ms ≈ 1 帧 @60fps**（请求在主线程每帧开头抽干，`src/core/app.cpp:1058`）→ UI 控制够用，**逐帧驱动不行**；
     - `player.open` 1280x720 h264 8.0s ✅ / 进度单调推进 ✅ / seek·rate·volume·mute 往返一致 ✅；
     - 字幕 `subtitle.line` 事件链路打通 ✅（外部 UI 可自画字幕；内核只在文本变化时广播，`app.cpp:948`）；
@@ -208,6 +212,10 @@ daily_player 已基本齐备；localplayer 的 `player.html` 已镜像多数；P
   - **形态 A 面板** `daily_player/spike_panel.py`：控制逻辑（`PanelController`）与 tkinter 分离，可无 GUI 回归（`tests/test_spike_panel.py` 14 项全绿）。窗口为「控制面板 + 播放器窗口」两个——单窗口需 S2。
   - **localplayer 端不成立，维持搁置**：MV3 扩展无 Node 运行时（Cordis 要求 Node ≥ 22）且无法承载原生 FFmpeg；若要让 PluginPlayer 当它的内核，需 PluginPlayer 学会推流（从播放器变服务器）并使扩展失去「离线免后端」特性。引入 MediaMTX 亦属多余（只转封装不转码）。
   - **S3（全屏）已补齐**：新增 `app.fullscreen` 方法（`{"value":0|1}` 设值 / `-1` 取反）+ `app.fullscreen` 事件；快捷键 F / ESC 收敛到同一个 `App::setFullscreen()` 入口（原来各自改 `fullscreen_` 不发事件）。`--hidden` 下明确返回失败而非假装成功。适配器新增 `setFullscreen()`，`getState().fullscreen` 由事件校正（能反映"用户在播放器窗口按 F"）。实测 6 项全绿，官方 `tools/rpc_client.py` **24/24**。详见评估文档 §10。
+  - **S4（默认切内核）已落地**：`daily_player/kernel.py` 把"选哪个内核"收成一个入口 —— `choose_kernel()`（纯函数决策）+ `PluginPlayerProcess`（无人值守拉起 + 事件订阅）+ `Kernel` 门面（端口直通 + 能力声明 + 内核专属补差）。`play.py` **不再 `import vlc`**，默认走 PluginPlayer，`--kernel=vlc|auto` 可显式切换（**只有 `auto` 允许回落**；默认内核找不到时明确报错，不静默换引擎）。
+    - **能力差异声明而非嗅探**：`embed`（vlc ✅ / pp ❌）、`externalFullscreen`（pp ✅）、`subtitleTracks`（两者 ✅）、`disableSubtitle`（vlc ✅ / pp ❌，RPC 不接受 `-1`）、截图落盘（pp 受写入白名单限制 → 门面内部中转）。
+    - **实测三层**：门面单测 44 项全绿（`tests/test_kernel.py`）；真机 E2E **23/23**（`daily_player/e2e_kernel.py`，报告 `docs/kernel-e2e-report.json`）；GUI 冒烟（真实 Tk root、非嵌入路径）通过，`on_close()` 后残留进程 **0**。
+    - **实测抓到并修掉 2 个真问题**：① 控制通道**默认不推任何事件**，不 `topic.subscribe(app.fullscreen)` 就永远收不到全屏事件（已加入 `DEFAULT_TOPICS` 并在接线层断言）；② snapshot 插件计数器**每进程归零**，会覆盖白名单目录里上一轮的同名文件 → 只比文件名的中转实现会误报"截图失败"（改为比 `mtime+size`，中转件复制后删除，已加回归）。详见评估文档 §11。
   - 剩余缺口（均非阻塞）：画面无法嵌入外部窗口（S2，需改 C++ 用 `SDL_CreateWindowFrom`）、播放列表需 UI 侧自建、分发需带预编译 exe。详见评估文档 §9。
 
 ## 8. 风险与未决

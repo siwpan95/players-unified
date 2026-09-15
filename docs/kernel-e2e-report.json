@@ -1,0 +1,122 @@
+{
+  "passed": 23,
+  "total": 23,
+  "failed": [],
+  "steps": [
+    {
+      "step": "find_pluginplayer_exe 命中",
+      "ok": true,
+      "detail": "G:\\repos\\players-unified\\pluginplayer\\dist\\pluginplayer.exe"
+    },
+    {
+      "step": "默认请求（不指定）→ pluginplayer，而不是回落 vlc",
+      "ok": true,
+      "detail": "使用 G:\\repos\\players-unified\\pluginplayer\\dist\\pluginplayer.exe"
+    },
+    {
+      "step": "create_kernel 成功并拉起进程",
+      "ok": true,
+      "detail": "使用 G:\\repos\\players-unified\\pluginplayer\\dist\\pluginplayer.exe"
+    },
+    {
+      "step": "caps.embed=False（画面不在 tk 窗口）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "attach_window 明确返回 False",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "caps.externalFullscreen=True",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "--hidden 下全屏切换如实返回 False（不假装成功）",
+      "ok": true,
+      "detail": "返回 False"
+    },
+    {
+      "step": "load + play 未抛异常",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "内核报出真实时长（>0）",
+      "ok": true,
+      "detail": "8000 ms"
+    },
+    {
+      "step": "进度真实前进",
+      "ok": true,
+      "detail": "20 ms → 1230 ms（+1210）"
+    },
+    {
+      "step": "PlayerState 通过 schema 校验",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "volume/muted 本地跟踪一致",
+      "ok": true,
+      "detail": "volume=100 muted=False"
+    },
+    {
+      "step": "setVolume(30) → getState 报 30",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "setMuted(True) → getState 报 True",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "setRate(1.5) → getState 报 1.5",
+      "ok": true,
+      "detail": "rate=1.5"
+    },
+    {
+      "step": "seek(1000) 后位置接近 1s",
+      "ok": true,
+      "detail": "1657 ms"
+    },
+    {
+      "step": "subtitle_tracks 返回列表",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "step": "越界 select_subtitle 返回 False",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "disable_subtitle 返回 False（能力不支持）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "screenshot 落盘",
+      "ok": true,
+      "detail": "C:\\Users\\13122\\AppData\\Local\\Temp\\tmpo7zx8jul\\sub\\e2e_snap.png"
+    },
+    {
+      "step": "是合法 PNG 且非空",
+      "ok": true,
+      "detail": "3687468 bytes"
+    },
+    {
+      "step": "中转落到了请求的目标路径",
+      "ok": true,
+      "detail": "请求 C:\\Users\\13122\\AppData\\Local\\Temp\\tmpo7zx8jul\\sub\\e2e_snap.png"
+    },
+    {
+      "step": "shutdown 后子进程已退出",
+      "ok": true,
+      "detail": "干净退出"
+    }
+  ]
+}

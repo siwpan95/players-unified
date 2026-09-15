@@ -34,6 +34,17 @@ DEFAULT_HOST = '127.0.0.1'
 DEFAULT_PORT = 7911
 DEFAULT_TOKEN_FILE = os.path.join('pluginplayer', 'dist', 'config', 'rpc-token.txt')
 
+# 事件缓冲上限：订阅了广播主题却没有消费者时，事件帧不能无限堆积。
+MAX_BUFFERED_EVENTS = 512
+
+# 默认订阅的主题。
+# **控制通道不会默认推任何事件**（服务端有一张过滤表，见 control.cpp 的 topic.subscribe），
+# 所以不显式订阅就永远收不到推送 —— 这里只订阅**本适配器真的会消费**的主题：
+#   app.fullscreen → `_applyEvents()` 用它校正全屏状态（含用户在播放器窗口按 F）。
+# 想自绘内核字幕的 UI 要自己 `subscribe('subtitle.line')` 并持续 `takeEvents()` 排空，
+# 否则只是白占缓冲（已被 MAX_BUFFERED_EVENTS 兜住，但没必要）。
+DEFAULT_TOPICS = ('app.fullscreen',)
+
 
 def dirname(p):
     """取路径的目录部分（支持 / 与 \\）。无分隔符时返回 ''。"""
@@ -136,6 +147,8 @@ class ControlChannel:
             ev = {'topic': msg.get('event'), 'data': msg.get('data')}
             with self._events_lock:
                 self.events.append(ev)
+                if len(self.events) > MAX_BUFFERED_EVENTS:
+                    del self.events[:-MAX_BUFFERED_EVENTS]
             for h in list(self._handlers):
                 try:
                     h(ev)
@@ -225,12 +238,35 @@ class PluginPlayerRpcEngine:
         self._volume = 100
         self._muted = False
         self._fullscreen = False
+        self.subscribed = []          # 已成功订阅的主题（subscribeDefaults 填充）
 
     @classmethod
     def connect(cls, host=DEFAULT_HOST, port=DEFAULT_PORT, token=None, token_file=None):
         rpc = ControlChannel(host=host, port=port, token=token, token_file=token_file)
         rpc.connect()
-        return cls(rpc)
+        eng = cls(rpc)
+        eng.subscribeDefaults()       # 不订阅 → 事件永远不到达
+        return eng
+
+    # ---- 事件订阅 ----
+    def subscribeDefaults(self, topics=DEFAULT_TOPICS):
+        """订阅本适配器会消费的主题；返回成功订阅的列表（幂等）。
+
+        控制通道**不会**默认推送事件：不调这个，`_applyEvents()` 就永远收不到
+        `app.fullscreen`，用户直接在播放器窗口按 F 的变化面板就跟不上。
+
+        单个主题订阅失败**不抛异常** —— 订阅属于可选增强，不该拖垮内核启动
+        （比如对端是还没有 `topic.subscribe` 的旧版本）。返回值便于排障。
+        """
+        ok = []
+        for t in topics:
+            try:
+                self.rpc.subscribe(t)
+                ok.append(t)
+            except Exception:
+                pass
+        self.subscribed = ok
+        return ok
 
     # ---- PlayerEngine 端口 ----
     def load(self, item):

@@ -31,6 +31,7 @@ sys.path.insert(0, os.path.join(ROOT, 'daily_player'))
 from validate import validate, load_schema                    # noqa: E402
 from player_engine_rpc import (                                # noqa: E402
     PluginPlayerRpcEngine, ControlChannel, RpcError, dirname,
+    MAX_BUFFERED_EVENTS,
 )
 
 SCHEMA = load_schema()
@@ -183,6 +184,11 @@ def main():
     try:
         eng = PluginPlayerRpcEngine.connect(host='127.0.0.1', port=srv.port, token='tok-123')
         assert srv.has('auth', {'token': 'tok-123'}), 'connect() 应先用正确令牌 auth'
+        # 控制通道不订阅就不推事件：connect() 必须替调用方订阅 app.fullscreen
+        assert srv.has('topic.subscribe', {'topic': 'app.fullscreen'}), \
+            'connect() 应订阅 app.fullscreen，否则事件校正永远不生效'
+        assert eng.subscribed == ['app.fullscreen'], \
+            f"订阅清单应只有 app.fullscreen，实际 {eng.subscribed}"
 
         item = {'id': 'x', 'uri': r'C:\media\movie.mkv', 'title': 'movie',
                 'kind': 'video', 'source': 'local-file'}
@@ -316,6 +322,30 @@ def main():
         assert st4['volume'] == 100, '未 setVolume 时默认 100'
     finally:
         srv4.close()
+
+    # ---- 订阅容错：单个主题失败不能拖垮内核启动 ----
+    class BadSubscribeRpc:
+        def __init__(self):
+            self.tried = []
+
+        def subscribe(self, topic):
+            self.tried.append(topic)
+            if topic == 'boom':
+                raise RpcError('不支持该主题')
+
+    br = BadSubscribeRpc()
+    got = PluginPlayerRpcEngine(br).subscribeDefaults(('boom', 'ok'))
+    assert br.tried == ['boom', 'ok'], f'每个主题都应尝试订阅，实际 {br.tried}'
+    assert got == ['ok'], f'失败的主题应被跳过而不是抛异常，实际 {got}'
+
+    # ---- 事件缓冲上限：订阅了广播主题却没人取走时不能无限涨 ----
+    ch = ControlChannel()
+    for i in range(MAX_BUFFERED_EVENTS * 2):
+        ch._handle_line(json.dumps({'event': 'noise', 'data': {'i': i}}).encode('utf-8'))
+    assert len(ch.events) == MAX_BUFFERED_EVENTS, \
+        f'事件缓冲应被截到 {MAX_BUFFERED_EVENTS}，实际 {len(ch.events)}'
+    assert ch.events[-1]['data']['i'] == MAX_BUFFERED_EVENTS * 2 - 1, '保留的应是最近的事件'
+    assert ch.events[0]['data']['i'] == MAX_BUFFERED_EVENTS, '最老的应被丢弃'
 
     print("[test] daily_player → PluginPlayer 控制通道适配器 全部断言通过 ✅  PlayerState 符合 schema")
     return 0
