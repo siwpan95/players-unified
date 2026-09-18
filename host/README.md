@@ -81,7 +81,7 @@ src/core/group.mjs       分组插件：自建嵌套配置树
 src/core/media.mjs       ctx.media 服务：来源注册表 + 聚合 + 深链分发
 src/core/transport.mjs   枚举/打开原语（从 launcher/server.mjs 移植的独立实现）
 src/core/web.mjs         ctx.web 服务：**一个端口承载所有 HTTP 面 + WS 升级**（Host/Origin 闸门在这里）
-src/sources/*.mjs        三端来源适配器
+src/sources/*.mjs        三端来源适配器 + bloodmusic（第四来源，P1 生态收编：BloodMusic 生成物经其自身仓库 host-js/python/list_media.py 枚举，深链 file:/// 直开；transport 新增通用 python-script kind，launcher/server.mjs 侧镜像实现保持双跑对拍口径）
 src/web/library-core.mjs localplayer media_lib 的纯移植（清单构建）
 src/web/library-face.mjs 列表面：/api/list + /media/<file>（Range）
 src/web/signaling.mjs    WebRTC 信令中继的**纯状态机**（server.py `ws_signaling` 的逐行移植）

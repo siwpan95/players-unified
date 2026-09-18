@@ -99,10 +99,49 @@ export function createTransport(root) {
     })
   }
 
+  /**
+   * 通用 python 脚本枚举：跑一个任意的 python 脚本，stdout 输出 MediaItem[] JSON。
+   * 与 `python` kind（写死 daily_player 的 media_source）不同，这里把枚举代码完全
+   * 交给来源端自己的仓库 —— 「聚合的是各端自己的代码产出」原则的通用化。
+   * 配置：{ python?, script, args?, timeoutMs? }（script 支持相对仓库根）。
+   */
+  async function listPythonScript(src) {
+    return new Promise((resolve, reject) => {
+      const py = src.list.python || process.env.PYTHON_BIN || 'python'
+      const script = resolvePath(src.list.script)
+      const args = [...(src.list.args || [])]
+      const child = spawn(py, [script, ...args], { windowsHide: true })
+      let out = ''
+      let err = ''
+      const timer = setTimeout(() => {
+        child.kill()
+        reject(new Error('超时'))
+      }, src.list.timeoutMs || 15000)
+
+      child.stdout.on('data', (d) => { out += d })
+      child.stderr.on('data', (d) => { err += d })
+      child.on('error', (e) => { clearTimeout(timer); reject(e) })
+      child.on('close', (code2) => {
+        clearTimeout(timer)
+        if (code2 !== 0) {
+          reject(new Error(err.trim() || `python 退出码 ${code2}`))
+          return
+        }
+        try {
+          const data = JSON.parse(out)
+          resolve(Array.isArray(data) ? data : [])
+        } catch {
+          reject(new Error('python 输出不是合法 JSON：' + out.slice(0, 200)))
+        }
+      })
+    })
+  }
+
   async function listSource(src) {
     const kind = src.list?.kind
     if (kind === 'http') return await listHttp(src)
     if (kind === 'python') return await listPython(src)
+    if (kind === 'python-script') return await listPythonScript(src)
     throw new Error(`未知的 list.kind: ${kind}`)
   }
 

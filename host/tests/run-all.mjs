@@ -19,6 +19,7 @@ const SUITE = [
   ['library-parity.mjs', '列表面与 python media_lib 对拍（S5-2）'],
   ['ws-rfc6455.mjs', '手写 RFC6455 帧级验收（S5-3）'],
   ['remote-parity.mjs', '信令中继跨语言 A/B 对拍（S5-3）'],
+  ['bloodmusic-source.mjs', '血音来源收编验收（P1 生态收编）'],
 ]
 
 const onlyArg = process.argv.find((a) => a.startsWith('--only='))

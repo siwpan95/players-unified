@@ -171,6 +171,9 @@ fs.writeFileSync(
       $note: 'parity 测试生成的临时覆盖层：把三端来源指向 fixture，并额外挂一个死端口来源',
       entries: [
         ...descriptors.slice(0, 3).map((d) => ({ id: `sources:${d.id}`, config: hostConfigFrom(d) })),
+        // bloodmusic 来源有自己的专属验收（tests/bloodmusic-source.mjs）；
+        // parity 只对拍「三端 fixture + 死端口」这一固定口径，故在此停用
+        { id: 'sources:bloodmusic', disabled: true },
         {
           id: 'extras',
           $group: true,

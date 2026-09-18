@@ -44,8 +44,23 @@
       "open": {
         "kind": "spawn",
         "cmd": "F:/Python314/python.exe",
-        "args": ["play.py"],
+        "args": [
+          "play.py"
+        ],
         "cwd": "daily_player"
+      }
+    },
+    {
+      "id": "bloodmusic",
+      "label": "BloodMusic · 程序化生成物",
+      "list": {
+        "kind": "python-script",
+        "python": "F:/Python314/python.exe",
+        "script": "G:/repos/audio-generation/host-js/python/list_media.py",
+        "timeoutMs": 15000
+      },
+      "open": {
+        "kind": "browser"
       }
     }
   ]

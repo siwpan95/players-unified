@@ -108,10 +108,48 @@ function listPython(src) {
   })
 }
 
+
+/**
+ * 通用 python 脚本枚举（与宿主 transport 的 python-script kind 镜像，双跑对比用）。
+ * 配置：{ python?, script, args?, timeoutMs? }。
+ */
+function listPythonScript(src) {
+  return new Promise((resolve, reject) => {
+    const py = src.list.python || process.env.PYTHON_BIN || 'python'
+    const script = resolvePath(src.list.script)
+    const args = [...(src.list.args || [])]
+    const child = spawn(py, [script, ...args], { windowsHide: true })
+    let out = ''
+    let err = ''
+    const timer = setTimeout(() => {
+      child.kill()
+      reject(new Error('超时'))
+    }, src.list.timeoutMs || 15000)
+
+    child.stdout.on('data', (d) => { out += d })
+    child.stderr.on('data', (d) => { err += d })
+    child.on('error', (e) => { clearTimeout(timer); reject(e) })
+    child.on('close', (code) => {
+      clearTimeout(timer)
+      if (code !== 0) {
+        reject(new Error(err.trim() || `python 退出码 ${code}`))
+        return
+      }
+      try {
+        const data = JSON.parse(out)
+        resolve(Array.isArray(data) ? data : [])
+      } catch {
+        reject(new Error('python 输出不是合法 JSON：' + out.slice(0, 200)))
+      }
+    })
+  })
+}
+
 export async function listSource(src) {
   const kind = src.list?.kind
   if (kind === 'http') return await listHttp(src)
   if (kind === 'python') return await listPython(src)
+  if (kind === 'python-script') return await listPythonScript(src)
   throw new Error(`未知的 list.kind: ${kind}`)
 }
 

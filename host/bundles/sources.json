@@ -47,6 +47,17 @@
               "cwd": "daily_player"
             }
           }
+        },
+        {
+          "id": "bloodmusic",
+          "$note": "P1 生态收编：BloodMusic 生成物经其自身仓库的 list_media.py 枚举（Phase A host-js 的姊妹件）",
+          "name": "./src/sources/bloodmusic.mjs",
+          "config": {
+            "python": "F:/Python314/python.exe",
+            "script": "G:/repos/audio-generation/host-js/python/list_media.py",
+            "timeoutMs": 15000,
+            "open": { "kind": "browser" }
+          }
         }
       ]
     }
