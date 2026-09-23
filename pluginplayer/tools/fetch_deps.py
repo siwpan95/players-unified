@@ -8,7 +8,7 @@ fetch_deps.py — 准备 vendor/ 依赖（SDL3 + FFmpeg 共享开发包）
 
 用法:
     F:/Python314/python.exe tools/fetch_deps.py
-    ... --src G:/local/player          # 指定本地资源目录（默认会自动探测）
+    ... --src <本地资源目录>            # 指定本地资源目录（默认会自动探测）
     ... --vendor ./vendor              # 指定输出目录
     ... --no-verify                    # 跳过 SHA-256 校验（不推荐，只在校验误报时用）
     ... --check-update                 # 只查上游有没有更新（HEAD 请求，不下载）
@@ -42,12 +42,12 @@ import ssl
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 
-# 本机常见位置（用户把资源放在这里时可直接复用，不必联网）
+# 本机常见位置（用户把资源放在这里时可直接复用，不必联网）。
+# 全部按 <仓库根> 相对推导：原候选里那两条指向本机已消失目录的绝对路径已删除
+# （删失效项、保留有效项；要复用别处资源请用 --src 显式指定）。
 DEFAULT_SRC_DIRS = [
     os.path.join(ROOT, "player"),        # 项目自带的参考/依赖压缩包（.gitignore 已排除）
     os.path.join(ROOT, "_extract"),
-    r"G:\local\player",
-    r"G:\local\player\_extract",
     os.path.join(ROOT, "_deps"),
 ]
 
