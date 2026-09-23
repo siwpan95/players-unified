@@ -1,8 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
 
-
+# 入口脚本：由本 spec 所在目录推导（去本地化，原硬编码绝对路径已失效）
 a = Analysis(
-    ['C:\\Users\\13122\\Desktop\\allin\\aup\\play.py'],
+    [os.path.join(SPECPATH, 'play.py')],
     pathex=[],
     binaries=[],
     datas=[],
