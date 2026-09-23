@@ -14,6 +14,33 @@ import shutil
 
 _VLC_ENV = 'DAILY_PLAYER_VLC_DIR'
 
+# ── 打包入口（2026-09-23 去本地化）──────────────────────────────────────────
+# 原实现写死 ['G:/repos/daily_player/play.py'] + pathex 指向那个**外部仓**（属跨仓硬编码）。
+# 现解析顺序：环境变量 DAILY_PLAYER_SRC（外部仓根，保持旧行为可用）
+#          → <spec 同级>（本仓内嵌副本）
+#          → <spec>/../../../daily_player（工作区同级仓，存在才用）
+# 都找不到则 fail-loud 点名该设哪个变量。
+_SRC_ENV = 'DAILY_PLAYER_SRC'
+
+def _pick_entry():
+    cands = []
+    env = os.environ.get(_SRC_ENV)
+    if env:
+        cands.append(env)
+    cands.append(SPECPATH)
+    cands.append(os.path.abspath(os.path.join(SPECPATH, '..', '..', '..', 'daily_player')))
+    for c in cands:
+        p = os.path.join(c, 'play.py')
+        if os.path.isfile(p):
+            return p
+    raise SystemExit(
+        '[daily_player.spec] 找不到打包入口 play.py。\n'
+        '  候选：' + '; '.join(cands) + '\n'
+        '  可设环境变量 ' + _SRC_ENV + '=<含 play.py 的目录> 后重试。'
+    )
+
+_ENTRY = _pick_entry()
+
 
 def _vlc_candidates():
     cands = []
@@ -71,8 +98,8 @@ if not _rthook:
           '本次构建不带 VLC runtime hook；可用环境变量 ' + _RTHOOK_ENV + ' 指定。')
 
 a = Analysis(
-    ['G:/repos/daily_player/play.py'],
-    pathex=['G:/repos/daily_player'],
+    [_ENTRY],
+    pathex=[os.path.dirname(_ENTRY)],
     binaries=[],
     datas=[
         (os.path.join(VLC_ROOT, 'libvlc.dll'), '.'),
