@@ -41,17 +41,17 @@
 
 ```bat
 :: 1) 准备依赖（首次；本机已有压缩包时会直接复用）
-F:\Python314\python.exe tools\fetch_deps.py
+python tools\fetch_deps.py
 
 :: 2) 构建（内核 + 11 个原生插件 + 打包 dist/）
-F:\Python314\python.exe build.py
+python build.py
 
 :: 2b) 冒烟测试（编译并运行 tests/ 下两个冒烟程序，几秒钟）
-F:\Python314\python.exe build.py --smoke
+python build.py --smoke
 
 :: 2c) 出发布物（干净重建 + 清理运行期产物 + 生成插件完整性清单）
 ::     实测产物 57 个文件 / 146 MB（不带 --release 时 dist/ 会累积日志与自检证据）
-F:\Python314\python.exe build.py --release
+python build.py --release
 
 :: 3) 播放（把视频拖到 run.bat 上，或：）
 dist\pluginplayer.exe 你的视频.mp4
@@ -94,12 +94,12 @@ cd host-js && npm install && node src\index.mjs --port 7911
 
 ## 命令行接口（CLI）
 
-上面那些命令都要敲 `F:\Python314\python.exe build.py ...` 这种长串。`tools/pp_cli.py`
+上面那些命令都要敲 `python build.py ...` 这种长串。`tools/pp_cli.py`
 把整个项目包成一个 `pluginplayer` 命令，一次装好后在**任意目录**都能用：
 
 ```bat
 :: 装一次（默认装到已在 PATH 上的 <Python>\Scripts，不改任何环境变量）
-F:\Python314\python.exe tools\pp_cli.py install-cli
+python tools\pp_cli.py install-cli
 
 :: 之后
 pluginplayer doctor                         :: 环境体检（真校验：哈希/版本/端口）
@@ -127,7 +127,7 @@ pluginplayer quit
 - 参数边界与 `src/core/main.cpp` 一一对齐，非法值在**起进程之前**就退 2。
 - 命令垫片是**纯 ASCII + CRLF**（cmd.exe 按 GBK 解读 `.bat`），且解释器路径带引号、
   解析顺序为 `PP_PYTHON` → 安装时记录的路径 → `py -3` → `python`。
-- 回归测试：`F:\Python314\python.exe tests\cli_check.py` → 实测 **28/28 通过**。
+- 回归测试：`python tests\cli_check.py` → 实测 **28/28 通过**。
 
 ---
 
@@ -137,7 +137,7 @@ pluginplayer quit
 
 ```bat
 ci.bat                                       :: Windows 一键（门禁 → Python/C++ 单测 → 冒烟 → 自检 → CLI 回归）
-F:\Python314\python.exe tools\ci.py           :: 同上，直接调编排脚本；可 --list / --only / --profile ci
+python tools\ci.py           :: 同上，直接调编排脚本；可 --list / --only / --profile ci
 ```
 
 `tools/ci.py` 把检查拆成**阶段**，每段自己判断前提是否满足：满足就跑，不满足就记 `[SKIP]`
@@ -174,9 +174,9 @@ SDL3/FFmpeg 的 Windows 二进制 + Winsock2。所以：
 散文约束不了它们，所以每条「两处必须相等」的断言都被写成了可执行检查：
 
 ```bat
-F:\Python314\python.exe tools\verify.py              :: 18 条门禁，<1 秒，不需要构建产物
-F:\Python314\python.exe tools\verify.py --list       :: 看有哪些
-F:\Python314\python.exe tools\verify.py --selfcheck  :: 对每条门禁做一次故意破坏，断言它必须报红
+python tools\verify.py              :: 18 条门禁，<1 秒，不需要构建产物
+python tools\verify.py --list       :: 看有哪些
+python tools\verify.py --selfcheck  :: 对每条门禁做一次故意破坏，断言它必须报红
 ```
 
 覆盖：`.bat/.cmd` 的 ASCII + CRLF 契约、插件完整性清单、发布载荷口径、C++ ↔ CLI 的 13 项
@@ -706,8 +706,8 @@ pp.cmd status                 rc=0   完整状态表（音量 0.800）
 ### 12. 单元测试与 CI —— 89 + 108 项通过，本地 CI 9/9 阶段
 
 ```bat
-F:\Python314\python.exe build.py --unit                        :: C++ 单元测试
-F:\Python314\python.exe -m unittest discover -s tests\python   :: Python 单元测试
+python build.py --unit                        :: C++ 单元测试
+python -m unittest discover -s tests\python   :: Python 单元测试
 ci.bat                                                          :: 一键跑全部
 ```
 
