@@ -1,5 +1,5 @@
 /**
- * media-library.mjs — 媒体源插件（JS / Cordis）
+ * 04-media-library.mjs — 媒体源插件（JS / Cordis）
  *
  * 对应 ARCHITECTURE.md §4 的「MediaSource」端口在 PluginPlayer 端的落地：
  * 扫描本地媒体库目录，产出与 schema/media-item.schema.json 一致的 MediaItem[]

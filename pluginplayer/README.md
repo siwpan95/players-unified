@@ -361,7 +361,7 @@ pluginplayer/
 ├─ host-js/                            进程外 JS 插件宿主（Cordis）
 │  ├─ src/player-service.mjs           ctx.player 服务（控制通道客户端）
 │  ├─ src/index.mjs                    宿主入口（装载/卸载插件）
-│  └─ plugins/                         3 个 JS 插件
+│  └─ plugins/                         4 个 JS 插件
 ├─ examples/hello_plugin/plugin.cpp    最小原生插件示例（PLUGIN_GUIDE 里逐行讲解）
 ├─ tests/smoke_link.cpp                工具链冒烟（SDL3 + FFmpeg 能否链接并解码）
 │     smoke_audio.cpp                  音频子系统冒烟（判定环境问题还是代码问题）
@@ -429,6 +429,7 @@ pluginplayer/
 | `01-event-log` | 通配/按主题订阅内核事件、`ctx.effect` 卸载时落盘统计 |
 | `02-auto-resume` | **服务型插件**：`inject: ['player']` 消费服务 + `ctx.resume` 提供服务；断点续播；调用原生插件命令（JS→C） |
 | `03-web-remote` | 零依赖 HTTP 控制页（`http://127.0.0.1:7912/`），可播放控制 + 执行任意原生插件命令 |
+| `04-media-library` | **媒体源插件**（players-unified 侧新增）：注册 `ctx.mediaLibrary` 服务（`list`/`rescan`/`getById`/`open`）+ 只读 HTTP `/api/library`，产出与 `schema/media-item.schema.json` 一致的 `MediaItem[]`（三端对齐） |
 
 ---
 
@@ -1176,7 +1177,7 @@ nameID 13/14 许可字段 —— 目前依据是字体发布方（站酷）的�
 | 框架 | Qt5.12 界面 + qmake | 无 GUI 框架，SDL3 直接画 |
 | 解码 API | FFmpeg 3.4（`avcodec_decode_video2` 等，已删除） | FFmpeg 9.0.1（`send_packet/receive_frame`、`AVChannelLayout`） |
 | 渲染/音频 | SDL2.0.7 | SDL3.4.16（`SDL_AudioStream` + 频率比变速） |
-| 可扩展性 | 功能写死在 `videoctl.cpp` | **全部功能插件化**，11 个原生插件 + 3 个 JS 插件 |
+| 可扩展性 | 功能写死在 `videoctl.cpp` | **全部功能插件化**，11 个原生插件 + 4 个 JS 插件 |
 | 外部控制 | 无 | JSON-RPC 控制通道 |
 | 精确 seek | 无 | 有（seek 后丢帧对齐，`dropBefore_`） |
 | 硬件解码 | 无 | **有**（D3D11VA，自动回退软解；实测减少丢帧，见验证结果 §16） |
