@@ -1,6 +1,30 @@
 import os, ctypes, sys
 
-bindir = r"G:\local\pluginplayer\vendor\libass\bin"
+# 2026-09-23 去本地化：不再写死本机绝对路径（原路径已不存在）。
+# 解析顺序：环境变量 PP_LIBASS_BIN → 本脚本同级 vendor/libass/bin → 报错并点名该设哪个变量。
+from pathlib import Path
+
+_HERE = Path(__file__).resolve().parent
+_DEFAULT_BIN = _HERE / "vendor" / "libass" / "bin"
+_env = os.environ.get("PP_LIBASS_BIN", "").strip()
+if _env:
+    # 显式配置必须生效或明确报错——不静默回退（否则设错路径会被掩盖）
+    if not Path(_env).is_dir():
+        raise SystemExit(
+            f"[错误] PP_LIBASS_BIN 指向的目录不存在：{_env}\n"
+            f"  它是显式配置，本脚本不会静默回退到默认目录（{_DEFAULT_BIN}）。\n"
+            f"  请改正该环境变量，或将其清空以使用默认目录。"
+        )
+    bindir = _env
+elif _DEFAULT_BIN.is_dir():
+    bindir = str(_DEFAULT_BIN)
+else:
+    raise SystemExit(
+        "[错误] 找不到 libass 依赖目录（含 libass-9.dll 等 DLL 的那一层）。\n"
+        f"  默认候选：{_DEFAULT_BIN}\n"
+        "  可用环境变量 PP_LIBASS_BIN=<目录> 指定。"
+    )
+print(f"[bindir] {bindir}")
 os.add_dll_directory(bindir)
 os.environ["PATH"] = bindir + os.pathsep + os.environ.get("PATH", "")
 
