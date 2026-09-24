@@ -44,6 +44,8 @@ DLLS = [
     "libglib-2.0-0.dll", "libgraphite2.dll", "libharfbuzz-0.dll", "libiconv-2.dll",
     "libintl-8.dll", "libpcre2-8-0.dll", "libpng16-16.dll", "libunibreak-7.dll",
     "zlib1.dll",
+    # MinGW 运行时三件套（libass-9.dll 的传递依赖；缺失即整条加载链失败，故显式列出）
+    "libgcc_s_seh-1.dll", "libstdc++-6.dll", "libwinpthread-1.dll",
 ]
 
 loaded = []
@@ -64,12 +66,20 @@ print(f"\nloaded {len(loaded)}/{len(DLLS)}")
 if len(loaded) < len(DLLS):
     print("提示：若失败较多，说明该目录只提供链接期依赖（缺 MinGW 运行时 libgcc/libstdc++/libwinpthread）；"
           f"运行时闭包在 {_RUNTIME_BIN}（先跑 python build.py 生成）。")
+    # 不能只打印提示就返回 0：退出码必须反映失败，否则冒烟/CI 会假绿。
+    raise SystemExit(1)
+if "libass-9.dll" not in loaded:
+    print("[FAIL] libass-9.dll 未能加载，闭包不完整")
+    raise SystemExit(1)
 # now try libass init
-if "libass-9.dll" in loaded:
-    lib = ctypes.CDLL(os.path.join(bindir, "libass-9.dll"))
-    init = lib.ass_library_init
-    init.restype = ctypes.c_void_p
-    init.argtypes = []
-    h = init()
-    print("ass_library_init ->", hex(h) if h else h)
-    print("[PASS] libass runtime loadable, closure complete")
+lib = ctypes.CDLL(os.path.join(bindir, "libass-9.dll"))
+init = lib.ass_library_init
+init.restype = ctypes.c_void_p
+init.argtypes = []
+h = init()
+print("ass_library_init ->", hex(h) if h else h)
+if not h:
+    print("[FAIL] ass_library_init 返回 NULL，libass 运行时不可用")
+    raise SystemExit(1)
+print("[PASS] libass runtime loadable, closure complete")
+raise SystemExit(0)
