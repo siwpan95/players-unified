@@ -43,6 +43,11 @@
 :: 1) 准备依赖（首次；本机已有压缩包时会直接复用）
 python tools\fetch_deps.py
 
+:: 1b) 可选：只补齐 libass 运行时闭包并做加载体检（不下载、不构建，秒级）
+::     vendor/libass/bin 缺 MinGW 运行时三件套时，构建前的 libass 自检会报 err=126；
+::     本步会从 PP_LIBASS_RUNTIME_SRC / PP_GXX 所在目录 / F:\mingw64\mingw64\bin / 本仓 dist 取齐缺件。
+python tools\fetch_deps.py --libass-only
+
 :: 2) 构建（内核 + 11 个原生插件 + 打包 dist/）
 python build.py
 
@@ -642,7 +647,7 @@ pluginplayer.cmd --version    rc=0   pluginplayer-cli 1.0.0
 pluginplayer.cmd status       rc=0   媒体   : test_assets/sample.mp4
 pluginplayer.cmd seek +1      rc=0   [OK] 位置 -> 0:07.90
 pluginplayer.cmd commands     rc=0   effect.clear ... <plugin#5>
-pluginplayer.cmd doctor       rc=0   [OK] Python 3.14.7 @ F:\Python314\python.exe
+pluginplayer.cmd doctor       rc=0   [OK] Python 3.14.7 @ python
 pp.cmd status                 rc=0   完整状态表（音量 0.800）
 ```
 
