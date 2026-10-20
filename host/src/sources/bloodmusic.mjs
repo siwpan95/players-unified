@@ -6,8 +6,8 @@
  * album_maker_quick / %TEMP%/bloodmusic-rpc）；打开走宿主 web 面（browser）。
  *
  * 这是 P1「生态收编」实证：Phase A 已把 BloodMusic 的 Cordis 宿主
- * （G:/repos/audio-generation/host-js）落地；本来源让统一编排层能直接聚合
- * BloodMusic 的生成物。设计文档见 audio-generation/docs/PLAN_cordis_host.md
+ * （G:/repos/bloodmusic/host-js）落地；本来源让统一编排层能直接聚合
+ * BloodMusic 的生成物。设计文档见 bloodmusic/docs/PLAN_cordis_host.md
  * 与 docs/REVIEW_phase_b_20260918.md（P1）。
  */
 

@@ -54,7 +54,7 @@
           "name": "./src/sources/bloodmusic.mjs",
           "config": {
             "python": "F:/Python314/python.exe",
-            "script": "G:/repos/audio-generation/host-js/python/list_media.py",
+            "script": "G:/repos/bloodmusic/host-js/python/list_media.py",
             "timeoutMs": 15000,
             "open": { "kind": "browser" }
           }
