@@ -1,0 +1,6 @@
+python-vlc>=3.0.21203
+mutagen>=1.47
+numpy>=2.1
+Pillow>=10
+# optional: pip install -e ".[viz]" for librosa mel spectra
+# optional: pip install -e ".[packaging]" for PyInstaller + imageio-ffmpeg

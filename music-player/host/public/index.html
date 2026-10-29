@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Music Player · Cordis Host</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1f2329; --muted: #6b7280;
+    --line: #e5e7eb; --accent: #2f6fed; --accent-ink: #ffffff;
+    --playing: #16a34a; --paused: #d97706; --stopped: #9ca3af; --danger: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.5; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: var(--card); border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 16px; margin: 0; }
+  .conn { font-size: 12px; color: var(--muted); }
+  .conn .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--stopped); margin-right: 6px; vertical-align: middle; }
+  .conn.on .dot { background: var(--playing); }
+  main { max-width: 920px; margin: 18px auto; padding: 0 16px; display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+  .full { grid-column: 1 / -1; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .now-title { font-size: 18px; font-weight: 600; margin: 0 0 4px; word-break: break-all; }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; color: #fff; background: var(--stopped); display: inline-block; }
+  .badge.playing { background: var(--playing); } .badge.paused { background: var(--paused); }
+  .time { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+  button { font: inherit; border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 8px; padding: 8px 14px; cursor: pointer; transition: .12s; }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.danger:hover { border-color: var(--danger); color: var(--danger); }
+  select, input[type=text] { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .grow { flex: 1 1 220px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  tr.current { background: #eef4ff; }
+  td.idx { color: var(--muted); width: 36px; }
+  .lyric-box { height: 168px; overflow: hidden; position: relative; font-size: 15px; }
+  .lyric-line { padding: 3px 0; color: var(--muted); transition: .15s; }
+  .lyric-line.active { color: var(--ink); font-weight: 700; }
+  canvas { width: 100%; height: 120px; background: #fafbfc; border-radius: 8px; display: block; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  h3 { margin: 0 0 10px; font-size: 15px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎵 Music Player · Cordis Host</h1>
+  <span class="conn" id="conn"><span class="dot"></span><span id="connText">连接中…</span></span>
+</header>
+<main>
+  <!-- 播放控制 -->
+  <section class="card full">
+    <p class="now-title" id="np-title">未播放</p>
+    <span class="badge" id="np-badge">stopped</span>
+    <div class="time"><span id="np-cur">0:00</span><span id="np-dur">0:00</span></div>
+    <input type="range" id="seek" min="0" max="1000" value="0" />
+    <div class="controls">
+      <button id="btn-prev">⏮ 上一曲</button>
+      <button class="primary" id="btn-play">▶ 播放</button>
+      <button id="btn-stop">⏹ 停止</button>
+      <button id="btn-next">⏭ 下一曲</button>
+      <span class="row" style="margin-left:auto">
+        <label>音量 <input type="range" id="vol" min="0" max="100" value="80" style="width:130px" /></label>
+        <button id="btn-mute">🔊 静音</button>
+      </span>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label>模式
+        <select id="mode">
+          <option value="sequential">顺序</option>
+          <option value="loop">列表循环</option>
+          <option value="single">单曲循环</option>
+          <option value="random">随机</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <!-- 歌词 -->
+  <section class="card">
+    <h3>歌词</h3>
+    <div class="lyric-box" id="lyrics"><div class="lyric-line">（无歌词）</div></div>
+  </section>
+
+  <!-- 可视化 -->
+  <section class="card">
+    <h3>可视化</h3>
+    <canvas id="viz" width="440" height="120"></canvas>
+    <p class="hint" id="viz-hint">加载音频后自动显示频谱</p>
+  </section>
+
+  <!-- 均衡器 -->
+  <section class="card full">
+    <h3>均衡器</h3>
+    <div class="row">
+      <select id="eq-preset">
+        <option value="flat">flat</option><option value="rock">rock</option><option value="pop">pop</option>
+        <option value="jazz">jazz</option><option value="classical">classical</option>
+        <option value="bass">bass</option><option value="vocal">vocal</option>
+      </select>
+      <button class="primary" id="btn-eq-on">启用预设</button>
+      <button class="danger" id="btn-eq-off">关闭均衡器</button>
+      <span class="hint" id="eq-status" style="margin:0">状态：关闭</span>
+    </div>
+  </section>
+
+  <!-- 添加 -->
+  <section class="card full">
+    <h3>添加</h3>
+    <div class="row" style="margin-bottom:8px">
+      <input type="text" id="add-path" class="grow" placeholder="本地文件路径，如 E:/music/song.mp3（多行=多文件）" />
+      <button class="primary" id="btn-add">＋ 添加本地</button>
+    </div>
+    <div class="row" style="margin-bottom:8px">
+      <input type="text" id="radio-url" class="grow" placeholder="网络电台 URL（http://… 或 .m3u8）" />
+      <input type="text" id="radio-name" placeholder="名称（可选）" style="flex:0 1 160px" />
+      <button id="btn-radio">＋ 添加电台</button>
+    </div>
+    <div class="row">
+      <input type="text" id="ncm-path" class="grow" placeholder="加密音频路径（.ncm/.qmc 等，仅解密本人拥有文件）" />
+      <button id="btn-import">🔓 解密导入</button>
+    </div>
+  </section>
+
+  <!-- 播放列表 -->
+  <section class="card full">
+    <h3>播放列表</h3>
+    <table>
+      <thead><tr><th class="idx">#</th><th>标题</th><th style="width:90px"></th></tr></thead>
+      <tbody id="pl-body"><tr><td colspan="3" style="color:var(--muted)">列表为空</td></tr></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let state = { status: 'stopped', current: null, playlist: [], current_index: -1, play_mode: 'sequential', volume: 80, mute: false, position_ms: 0, duration_ms: 0, equalizer_on: false };
+let seeking = false;
+
+function fmt(sec) { sec = Math.max(0, Math.floor(sec || 0)); const m = Math.floor(sec / 60), s = sec % 60; return m + ':' + String(s).padStart(2, '0'); }
+
+async function cmd(endpoint, params) {
+  const url = new URL(endpoint, location.origin);
+  if (params) for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  const r = await fetch(url, { method: 'POST' });
+  return r.json().catch(() => ({}));
+}
+
+function render() {
+  $('np-title').textContent = state.current ? (state.current.title || state.current.path) : '未播放';
+  const badge = $('np-badge');
+  badge.textContent = state.status;
+  badge.className = 'badge' + (state.status === 'playing' ? ' playing' : state.status === 'paused' ? ' paused' : '');
+  $('np-cur').textContent = fmt(state.position_ms / 1000);
+  $('np-dur').textContent = fmt(state.duration_ms / 1000);
+  const frac = (state.duration_ms > 0) ? Math.min(1000, Math.round((state.position_ms / state.duration_ms) * 1000)) : 0;
+  if (!seeking) $('seek').value = frac;
+  $('vol').value = state.volume;
+  $('btn-mute').textContent = state.mute ? '🔇 取消静音' : '🔊 静音';
+  $('btn-play').textContent = state.status === 'playing' ? '⏸ 暂停' : '▶ 播放';
+  $('mode').value = state.play_mode;
+  $('eq-status').textContent = state.equalizer_on ? '状态：已启用' : '状态：关闭';
+
+  const body = $('pl-body');
+  if (!state.playlist.length) {
+    body.innerHTML = '<tr><td colspan="3" style="color:var(--muted)">列表为空</td></tr>';
+  } else {
+    body.innerHTML = state.playlist.map((it) => `
+      <tr class="${it.index === state.current_index ? 'current' : ''}">
+        <td class="idx">${it.index + 1}</td>
+        <td>${escapeHtml(it.title || it.path)}${it.radio ? ' 📻' : ''}</td>
+        <td><button class="danger" data-rm="${it.index}">移除</button></td>
+      </tr>`).join('');
+    body.querySelectorAll('tr').forEach((tr) => {
+      tr.addEventListener('click', (e) => {
+        if (e.target.dataset.rm != null) return;
+        cmd('/api/play', { index: tr.querySelector('.idx').textContent - 1 });
+      });
+    });
+    body.querySelectorAll('[data-rm]').forEach((b) => {
+      b.addEventListener('click', (e) => { e.stopPropagation(); cmd('/api/remove', { index: b.dataset.rm }); });
+    });
+  }
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+// ---- 歌词（轮询 /api/lyrics）----
+async function pollLyrics() {
+  try {
+    const r = await fetch('/api/lyrics');
+    const d = await r.json();
+    if (!d.loaded || !d.lines.length) { if (!$('lyrics').dataset.touched) $('lyrics').innerHTML = '<div class="lyric-line">（无歌词）</div>'; return; }
+    $('lyrics').dataset.touched = '1';
+    const curIdx = d.current ? d.current.index : -1;
+    const start = Math.max(0, curIdx - 2), end = Math.min(d.lines.length, curIdx + 3);
+    let html = '';
+    if (start > 0) html += '<div class="lyric-line">…</div>';
+    for (let i = start; i < end; i++) {
+      html += `<div class="lyric-line ${i === curIdx ? 'active' : ''}">${escapeHtml(d.lines[i].text)}</div>`;
+    }
+    if (end < d.lines.length) html += '<div class="lyric-line">…</div>';
+    $('lyrics').innerHTML = html;
+  } catch {}
+}
+
+// ---- 可视化（轮询 /api/visualizer/frame）----
+const vizCanvas = $('viz'), vizCtx = vizCanvas.getContext('2d');
+async function pollViz() {
+  try {
+    const r = await fetch('/api/visualizer/frame');
+    const d = await r.json();
+    if (!d.frame || !d.frame.length) { $('viz-hint').textContent = '加载音频后自动显示频谱'; return; }
+    $('viz-hint').textContent = '频谱';
+    const w = vizCanvas.width, h = vizCanvas.height;
+    vizCtx.clearRect(0, 0, w, h);
+    const n = d.frame.length;
+    const barW = w / n;
+    for (let i = 0; i < n; i++) {
+      const v = Math.max(0, Math.min(1, d.frame[i]));
+      const bh = v * h;
+      vizCtx.fillStyle = 'hsl(' + Math.round(220 - v * 200) + ',70%,55%)';
+      vizCtx.fillRect(i * barW, h - bh, Math.max(1, barW - 1), bh);
+    }
+  } catch {}
+}
+
+// ---- SSE 实时状态 ----
+function connect() {
+  try {
+    const es = new EventSource('/api/stream');
+    es.onopen = () => { $('conn').classList.add('on'); $('connText').textContent = '已连接'; };
+    es.onmessage = (e) => { try { state = JSON.parse(e.data); render(); } catch {} };
+    es.onerror = () => { $('conn').classList.remove('on'); $('connText').textContent = '重连中…'; };
+  } catch { setInterval(async () => { try { state = await (await fetch('/api/status')).json(); render(); } catch {} }, 1000); }
+}
+
+// ---- 控制 ----
+$('btn-play').onclick = () => cmd('/api/play');
+$('btn-prev').onclick = () => cmd('/api/prev');
+$('btn-next').onclick = () => cmd('/api/next');
+$('btn-stop').onclick = () => cmd('/api/stop');
+$('btn-mute').onclick = () => cmd('/api/mute', { m: '1' });
+$('vol').oninput = (e) => cmd('/api/volume', { v: e.target.value });
+$('mode').onchange = (e) => cmd('/api/mode', { m: e.target.value });
+$('seek').oninput = () => { seeking = true; };
+$('seek').onchange = (e) => { cmd('/api/seek', { f: (e.target.value / 1000).toFixed(4) }); seeking = false; };
+
+$('btn-add').onclick = async () => {
+  const raw = $('add-path').value.trim();
+  if (!raw) return;
+  const lines = raw.split('\n').map((s) => s.trim()).filter(Boolean);
+  await fetch('/api/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paths: lines.map((p) => ({ path: p })) }) });
+  $('add-path').value = '';
+};
+$('btn-radio').onclick = async () => {
+  const url = $('radio-url').value.trim();
+  if (!url) return;
+  await fetch('/api/radio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, name: $('radio-name').value.trim() }) });
+  $('radio-url').value = ''; $('radio-name').value = '';
+};
+$('btn-import').onclick = async () => {
+  const p = $('ncm-path').value.trim();
+  if (!p) return;
+  const r = await fetch('/api/import-encrypted', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: p }) }).then((x) => x.json());
+  if (r.error) alert('解密失败：' + r.error); else { $('ncm-path').value = ''; }
+};
+$('btn-eq-on').onclick = () => cmd('/api/equalizer', { preset: $('eq-preset').value });
+$('btn-eq-off').onclick = () => cmd('/api/equalizer');
+
+connect();
+render();
+setInterval(pollLyrics, 300);
+setInterval(pollViz, 200);
+</script>
+</body>
+</html>
