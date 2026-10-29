@@ -1,0 +1,12 @@
+﻿# 产物与本地环境（不入库）
+.venv/
+venv/
+__pycache__/
+*.pyc
+build/
+dist/
+node_modules/
+.pytest_cache/
+output/
+saves/
+*.log

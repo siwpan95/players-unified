@@ -1,0 +1,2 @@
+# player dependencies (auto-generated 2026-08-20)
+# no third-party deps (stdlib only)
