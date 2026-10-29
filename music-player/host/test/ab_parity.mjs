@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 const NODE = process.execPath;
-const PY = 'E:/Python314/python.exe';
+const PY = 'python';
 const HOST_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PROJECT_DIR = path.resolve(HOST_DIR, '..');
 const FFMPEG = 'E:/ffmpeg/bin/ffmpeg.exe';

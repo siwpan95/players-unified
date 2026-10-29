@@ -79,15 +79,15 @@ daily_player **默认内核已是 PluginPlayer**（`daily_player/kernel.py` 收�
 
 ```bat
 :: 门面层端到端（需要真实 pluginplayer.exe + 媒体；缺条件则跳过）→ docs/kernel-e2e-report.json
-F:/Python314/python.exe daily_player/e2e_kernel.py
+/Python314/python.exe daily_player/e2e_kernel.py
 
 :: 门面单测（零三方依赖，不需要 exe，44 项）
-F:/Python314/python.exe daily_player/tests/test_kernel.py
+/Python314/python.exe daily_player/tests/test_kernel.py
 
 :: S1 尖峰：无人值守实测控制通道协议，退出码 0 = 全绿
-F:/Python314/python.exe daily_player/spike_s1.py
-F:/Python314/python.exe daily_player/spike_panel.py       :: 形态 A tkinter 面板
-F:/Python314/python.exe daily_player/spike_panel.py --no-gui --seconds 3
+/Python314/python.exe daily_player/spike_s1.py
+/Python314/python.exe daily_player/spike_panel.py       :: 形态 A tkinter 面板
+/Python314/python.exe daily_player/spike_panel.py --no-gui --seconds 3
 ```
 
 `spike_s1.py` 会自己拉起 `pluginplayer.exe --hidden`（不弹窗）跑 8 组测量后收进程。

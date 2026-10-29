@@ -3,7 +3,7 @@
 直接调用真实代码路径 media_lib.build_media_items()（server.py 的 /api/list 即调用它），
 校验其产出符合 schema/media-item.schema.json 的 MediaItem 契约。零三方依赖，用 F:\\Python314 直跑。
 
-运行：F:/Python314/python.exe localplayer/tests/test_media_lib.py
+运行：python localplayer/tests/test_media_lib.py
 """
 import os
 import re

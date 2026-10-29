@@ -36,7 +36,7 @@ import { compose, HOST_DIR } from '../src/compose.mjs'
 import { attachConsoleLogger } from '../src/logging.mjs'
 import { writeReport } from './helpers/report.mjs'
 
-const PYTHON = 'F:/Python314/python.exe'
+const PYTHON = 'python'
 const LOCALPLAYER = path.resolve(HOST_DIR, '..', 'localplayer')
 const REPORT = path.resolve(HOST_DIR, '..', 'docs', 's5-remote-parity.json')
 

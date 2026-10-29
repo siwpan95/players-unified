@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url'
 import { createLauncher, REPO_ROOT } from '../server.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const PY = process.env.PYTHON_BIN || 'F:/Python314/python.exe'
+const PY = process.env.PYTHON_BIN || 'python'
 const STUB_PORT = 59311      // 桩「远端后端」（模拟 localplayer /api/list）
 const APP_PORT = 59312       // 启动器自身
 const DEAD_PORT = 59999      // 必定连不上：用来验证单源故障降级

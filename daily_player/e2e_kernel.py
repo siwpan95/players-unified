@@ -21,7 +21,7 @@ kernel.py + 进程托管**上。本脚本把那一层单独拉出来跑，给得
 
 用法::
 
-    F:/Python314/python.exe daily_player/e2e_kernel.py [媒体文件]
+    python daily_player/e2e_kernel.py [媒体文件]
     # 默认媒体：pluginplayer/dist/test_assets/sample.mp4
 """
 

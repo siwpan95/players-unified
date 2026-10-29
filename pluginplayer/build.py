@@ -7,7 +7,7 @@ build.py — PluginPlayer 构建脚本
 不依赖 cmake / make：直接用本机 MinGW-w64 g++ 编译，产物汇总到 dist/。
 
 用法:
-    F:/Python314/python.exe build.py            # 完整构建（内核 + 全部插件 + 打包 dist）
+    python build.py            # 完整构建（内核 + 全部插件 + 打包 dist）
     ... build.py --core                         # 只编译内核
     ... build.py --plugins osd_stats,snapshot   # 只编译指定插件
     ... build.py --clean                        # 清理 build/ 与 dist/
@@ -31,7 +31,9 @@ BUILD = os.path.join(ROOT, "build")
 DIST = os.path.join(ROOT, "dist")
 VENDOR = os.path.join(ROOT, "vendor")
 
-GXX = os.environ.get("PP_GXX", r"F:/mingw64/mingw64/bin/g++.exe")
+# 去符盘（铁律 5）：优先 PP_GXX 环境变量，其次 PATH 查找，兜底交给 PATH 解析。
+# 不写死任何盘符——MinGW 落点随机器而异。
+GXX = os.environ.get("PP_GXX") or shutil.which("g++.exe") or "g++.exe"
 
 CORE_SOURCES = [
     "core/main.cpp", "core/app.cpp", "core/host.cpp", "core/player.cpp",

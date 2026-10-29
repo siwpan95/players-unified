@@ -37,19 +37,19 @@ player/ _extract/ _deps/  参考源码与依赖归档缓存（不入库）
 ## 命令
 
 ```bat
-F:\Python314\python.exe tools\fetch_deps.py        :: 准备 vendor/（首次必须）
-F:\Python314\python.exe build.py                   :: 编译内核 + 插件 + 打包 dist/
-F:\Python314\python.exe build.py --unit            :: C++ 单元测试（不需要 vendor/）
-F:\Python314\python.exe build.py --smoke           :: 工具链冒烟
-F:\Python314\python.exe build.py --apitest         :: 编译插件 API 回归插件
-F:\Python314\python.exe build.py --release         :: 出发布物（干净重建 + 清理 + 清单）
-F:\Python314\python.exe tools\verify.py            :: 18 条机械门禁（<1 秒，不需构建产物）
-F:\Python314\python.exe tools\verify.py --selfcheck :: 对每条门禁故意破坏，断言它必须报红
-F:\Python314\python.exe tools\ci.py                :: CI 编排（分阶段，前提缺失记 SKIP）
-F:\Python314\python.exe tests\cli_check.py         :: CLI 回归（端到端）
-F:\Python314\python.exe -m unittest discover -s tests\python   :: Python 单元测试
+/Python314/python.exe tools\fetch_deps.py        :: 准备 vendor/（首次必须）
+/Python314/python.exe build.py                   :: 编译内核 + 插件 + 打包 dist/
+/Python314/python.exe build.py --unit            :: C++ 单元测试（不需要 vendor/）
+/Python314/python.exe build.py --smoke           :: 工具链冒烟
+/Python314/python.exe build.py --apitest         :: 编译插件 API 回归插件
+/Python314/python.exe build.py --release         :: 出发布物（干净重建 + 清理 + 清单）
+/Python314/python.exe tools\verify.py            :: 18 条机械门禁（<1 秒，不需构建产物）
+/Python314/python.exe tools\verify.py --selfcheck :: 对每条门禁故意破坏，断言它必须报红
+/Python314/python.exe tools\ci.py                :: CI 编排（分阶段，前提缺失记 SKIP）
+/Python314/python.exe tests\cli_check.py         :: CLI 回归（端到端）
+/Python314/python.exe -m unittest discover -s tests\python   :: Python 单元测试
 ci.bat                                             :: 一键：门禁 → 单测 → 冒烟 → 自检 → CLI
-F:\Python314\python.exe tools\pp_cli.py install-cli  :: 装好后可用 `pluginplayer <子命令>`
+/Python314/python.exe tools\pp_cli.py install-cli  :: 装好后可用 `pluginplayer <子命令>`
 ```
 
 装过 CLI 之后：`pluginplayer doctor` / `selftest` / `build --release` / `status` / `cmd <名>` /

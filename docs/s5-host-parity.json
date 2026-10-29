@@ -14,7 +14,7 @@
     "pluginplayerUrl": "http://127.0.0.1:12737/api/library",
     "pluginplayerTokenChecked": true,
     "mediaDir": "C:\\Users\\13122\\AppData\\Local\\Temp\\puh-parity-yS8uzo\\library",
-    "python": "F:/Python314/python.exe",
+    "python": "python",
     "deadPort": 12738
   },
   "host": {

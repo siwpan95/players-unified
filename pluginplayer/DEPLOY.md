@@ -22,7 +22,7 @@
 ## 2. 发布载荷
 
 ```bat
-F:\Python314\python.exe build.py --release
+/Python314/python.exe build.py --release
 ```
 
 `--release` = 干净重建（先删 `build/` 与 `dist/`）+ 生成插件完整性清单 +
@@ -98,8 +98,8 @@ dist\pluginplayer.exe --hidden --rpc-port 7911 --size 1280x720 <媒体文件>
 ## 4. 依赖升级
 
 ```bat
-F:\Python314\python.exe tools\fetch_deps.py --check-update      :: 只发 HEAD 请求，告诉你上游有没有更新
-F:\Python314\python.exe tools\fetch_deps.py --refresh           :: 强制重新抓取
+/Python314/python.exe tools\fetch_deps.py --check-update      :: 只发 HEAD 请求，告诉你上游有没有更新
+/Python314/python.exe tools\fetch_deps.py --refresh           :: 强制重新抓取
 ```
 
 - 抓取/校验流程：解压**前**比对 SHA-256 与 `DEPS_SHA256`；不命中会告警并打印实测哈希；
@@ -113,9 +113,9 @@ F:\Python314\python.exe tools\fetch_deps.py --refresh           :: 强制重新�
 **升级后必须重跑**：
 
 ```bat
-F:\Python314\python.exe build.py --release
-F:\Python314\python.exe tools\gen_third_party_notices.py      :: 版本号/许可证据变了，重生成
-F:\Python314\python.exe tools\verify.py                       :: 文档里的版本号也要同步
+/Python314/python.exe build.py --release
+/Python314/python.exe tools\gen_third_party_notices.py      :: 版本号/许可证据变了，重生成
+/Python314/python.exe tools\verify.py                       :: 文档里的版本号也要同步
 pluginplayer selftest
 ```
 
@@ -129,13 +129,13 @@ pluginplayer selftest
 
 ```bat
 :: 只留发布载荷，清掉运行期产物（日志/自检证据/测试素材/令牌）
-F:\Python314\python.exe build.py --release
+/Python314/python.exe build.py --release
 
 :: 连构建缓存一起去掉
-F:\Python314\python.exe build.py --clean
+/Python314/python.exe build.py --clean
 
 :: 把 CLI 命令也从 PATH 里移除（只删带自身标记的垫片）
-F:\Python314\python.exe tools\pp_cli.py uninstall-cli
+/Python314/python.exe tools\pp_cli.py uninstall-cli
 ```
 
 要交接给别人时，拷贝 `dist/` 之前先确认里面**没有** `config/rpc-token.txt`、
@@ -179,15 +179,15 @@ set GITEE_TOKEN=<你的令牌>
 
 :: 1) 全量回归必须先绿（发布构建会清空 dist/，先跑完测试）
 ci.bat
-F:\Python314\python.exe build.py --release
-F:\Python314\python.exe tools\verify.py
+/Python314/python.exe build.py --release
+/Python314/python.exe tools\verify.py
 
 :: 2) 打标签并推送（tag 要落在"全量回归通过的那个提交"上）
-F:\Python314\python.exe tools\gitee_release.py release --name pluginplayer ^
+/Python314/python.exe tools\gitee_release.py release --name pluginplayer ^
     --tag v1.0.0 --title "PluginPlayer v1.0.0" --notes-file release-notes.md
 
 :: 3) 上传发行版附件
-F:\Python314\python.exe tools\gitee_release.py attach --name pluginplayer ^
+/Python314/python.exe tools\gitee_release.py attach --name pluginplayer ^
     --tag v1.0.0 --file pluginplayer-v1.0.0-win64.zip --file SHA256SUMS.txt
 ```
 

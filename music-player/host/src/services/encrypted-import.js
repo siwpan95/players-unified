@@ -1,7 +1,7 @@
 // 加密曲库导入桥（对齐 Python library/encrypted_import.py）。
 //
 // 复用 ncmturnmp3（D:/projects/ncmturnmp3 的 audio_core.process_one），通过
-// 调起 Python（E:/Python314）执行解密，不复制其源码。找不到 ncmturnmp3 时
+// 调起 Python（/Python314）执行解密，不复制其源码。找不到 ncmturnmp3 时
 // 给出清晰错误并优雅降级（对齐 Python 侧的 EncryptedImportError 语义）。
 
 import { Service } from '../core/index.js';
@@ -13,7 +13,7 @@ export class EncryptedImportService extends Service {
   constructor(ctx, config = {}) {
     super(ctx, 'encrypted-import');
     this.ctx = ctx;
-    this.python = config.python || process.env.PYTHON_PATH || 'E:/Python314/python.exe';
+    this.python = config.python || process.env.PYTHON_PATH || 'python';
     this.ncmDir = config.ncmDir || process.env.NCMTURNMP3_DIR || 'D:/projects/ncmturnmp3';
     this.cacheDir = config.cacheDir || path.resolve(process.cwd(), 'cache/decrypted');
   }

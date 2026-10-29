@@ -32,7 +32,7 @@ import { attachConsoleLogger } from '../src/logging.mjs'
 import { writeReport } from './helpers/report.mjs'
 import * as launcher from '../../launcher/server.mjs'
 
-const PYTHON = 'F:/Python314/python.exe'
+const PYTHON = 'python'
 const TOKEN = 'parity-test-token-0123456789'
 const REPORT = path.resolve(HOST_DIR, '..', 'docs', 's5-host-parity.json')
 

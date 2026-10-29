@@ -1,9 +1,9 @@
 """daily_player PlayerEngine 适配器测试（P1 / Phase 2）。
 
 用「假 libVLC」（FakeInstance / FakePlayer）驱动真实的 VlcPlayerEngine，
-校验端口语义与 PlayerState 契约。零三方依赖，用 F:/Python314/python.exe 直跑。
+校验端口语义与 PlayerState 契约。零三方依赖，用 python 直跑。
 
-运行：F:/Python314/python.exe daily_player/tests/test_player_engine.py
+运行：python daily_player/tests/test_player_engine.py
 """
 import os
 import sys

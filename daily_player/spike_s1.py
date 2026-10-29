@@ -17,9 +17,9 @@
 
 用法
 ----
-    F:/Python314/python.exe spike_s1.py                 # 用默认路径跑
-    F:/Python314/python.exe spike_s1.py --exe <path> --media <path> --sub <path>
-    F:/Python314/python.exe spike_s1.py --keep          # 跑完不退出播放器（人工观察）
+    python spike_s1.py                 # 用默认路径跑
+    python spike_s1.py --exe <path> --media <path> --sub <path>
+    python spike_s1.py --keep          # 跑完不退出播放器（人工观察）
 
 退出码：0 = 全部通过；1 = 有断言失败；2 = 环境不具备（找不到 exe / 媒体）。
 """

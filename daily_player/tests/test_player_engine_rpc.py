@@ -4,9 +4,9 @@
 见 pluginplayer/src/core/control.cpp）驱动真实适配器，做协议级验证：
 不只是 mock 函数调用，而是连认证、分帧、事件帧跳过一起验证。
 
-零三方依赖，用 F:/Python314/python.exe 直跑。
+零三方依赖，用 python 直跑。
 
-运行：F:/Python314/python.exe daily_player/tests/test_player_engine_rpc.py
+运行：python daily_player/tests/test_player_engine_rpc.py
 """
 import json
 import os

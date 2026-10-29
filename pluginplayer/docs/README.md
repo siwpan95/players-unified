@@ -60,5 +60,5 @@ ARCHITECTURE.md  ──►  PLUGIN_GUIDE.md      （想扩展功能）
 
 ```bat
 :: 改完文档跑一遍就知道有没有写散
-F:\Python314\python.exe tools\verify.py
+/Python314/python.exe tools\verify.py
 ```

@@ -212,7 +212,7 @@ Redis 分布式集群代理（README L186 已定性）。本地单用户播放�
 复现方式（无人值守，不弹窗）：
 
 ```bash
-F:/Python314/python.exe daily_player/spike_s1.py
+/Python314/python.exe daily_player/spike_s1.py
 ```
 
 脚本会自己拉起 `pluginplayer.exe --hidden --no-audio --rpc-port <随机> --rpc-token <随机> --write-dir <out>`，
@@ -351,7 +351,7 @@ F:/Python314/python.exe daily_player/spike_s1.py
 
 players-unified 的 `.gitignore` 排除了 `dist/` 与 `vendor/`，所以构建产物与依赖不在仓库里。
 本次复现用的是：`vendor/` 目录联接到原仓库 `G:\repos\pluginplayer\vendor`，
-`dist/` 从原仓库拷一份（59 文件），再 `F:/Python314/python.exe build.py --core`（g++ 16.1.0，57.4s）。
+`dist/` 从原仓库拷一份（59 文件），再 `/Python314/python.exe build.py --core`（g++ 16.1.0，57.4s）。
 `vendor/` 与 `dist/` 均被忽略，不会进版本库。
 
 ---

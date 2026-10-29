@@ -12,10 +12,10 @@
 用法
 ----
     # 形态 A 面板（需要图形界面）
-    F:/Python314/python.exe spike_panel.py --exe <pluginplayer.exe>
+    python spike_panel.py --exe <pluginplayer.exe>
 
     # 无 GUI 冒烟：连上播放器跑 5 秒，打印状态与字幕后退出（退出码 0 = 正常）
-    F:/Python314/python.exe spike_panel.py --no-gui --attach-port 7911 --attach-token <token>
+    python spike_panel.py --no-gui --attach-port 7911 --attach-token <token>
 """
 
 import argparse

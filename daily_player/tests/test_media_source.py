@@ -3,7 +3,7 @@
 直接调用真实代码路径 LocalFileSource.list() / media_item_for()，校验其产出符合
 schema/media-item.schema.json 的 MediaItem 契约。零三方依赖，用 F:\\Python314 直跑。
 
-运行：F:/Python314/python.exe daily_player/tests/test_media_source.py
+运行：python daily_player/tests/test_media_source.py
 """
 import os
 import re

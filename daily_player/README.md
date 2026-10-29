@@ -89,7 +89,7 @@ PluginPlayer 内核的画面在**播放器自己的窗口**里（无法嵌入 tk
 
 ## 依赖
 
-- Python >= 3.8（本机实测 `F:\Python314`，3.14.6，自带 Tk）
+- Python >= 3.8（本机实测 `/Python314`，3.14.6，自带 Tk）
 - 默认内核：`pluginplayer.exe`（无需 pip 包）
 - 可选内核：`python-vlc >= 3.0` + VLC 播放器
 - 可选：`pystray`, `Pillow`（系统托盘）
@@ -98,10 +98,10 @@ PluginPlayer 内核的画面在**播放器自己的窗口**里（无法嵌入 tk
 
 ```bash
 # 单测（零三方依赖，不需要播放器 exe）
-F:/Python314/python.exe tests/test_kernel.py
+/Python314/python.exe tests/test_kernel.py
 
 # 门面端到端（需要真实 pluginplayer.exe + 媒体；缺条件则跳过）
-F:/Python314/python.exe e2e_kernel.py
+/Python314/python.exe e2e_kernel.py
 ```
 
 `e2e_kernel.py` 会验证：默认内核命中 PluginPlayer、进程拉起、经端口驱动播放、

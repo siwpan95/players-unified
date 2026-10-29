@@ -3,7 +3,7 @@
   "generatedAt": "2026-09-15T01:32:53.338Z",
   "sides": {
     "python": {
-      "interpreter": "F:/Python314/python.exe",
+      "interpreter": "python",
       "entry": "localplayer/server.py",
       "stack": "Flask + flask-sock",
       "port": 12785,

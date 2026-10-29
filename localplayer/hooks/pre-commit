@@ -6,7 +6,7 @@ PY=""
 if command -v python >/dev/null 2>&1; then PY=python
 elif command -v python3 >/dev/null 2>&1; then PY=python3
 elif command -v py >/dev/null 2>&1; then PY=py
-elif [ -f "F:/Python314/python.exe" ]; then PY="F:/Python314/python.exe"
+elif [ -f "python" ]; then PY="python"
 elif [ -f "/f/Python314/python.exe" ]; then PY="/f/Python314/python.exe"
 fi
 

@@ -2,7 +2,7 @@
   "schema": "players-unified/s5-library-face/1",
   "generatedAt": "2026-09-15T01:32:47.536Z",
   "python": {
-    "interpreter": "F:/Python314/python.exe",
+    "interpreter": "python",
     "module": "localplayer/media_lib.py",
     "items": 7
   },

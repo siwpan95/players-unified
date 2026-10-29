@@ -10,7 +10,7 @@
 | 需要什么 | 本机位置 | 怎么覆盖 |
 |---|---|---|
 | 编译器 | `F:\mingw64\mingw64\bin\g++.exe`（MinGW-w64 GCC 16.1.0） | 环境变量 `PP_GXX` |
-| Python | `F:\Python314\python.exe`（3.14.7） | 用绝对路径调用即可 |
+| Python | `/Python314/python.exe`（3.14.7） | 用绝对路径调用即可 |
 | Node.js | PATH 上的 `node`（host-js 需要） | 环境变量 `PP_NODE` |
 | SDL3 + FFmpeg | `vendor/`（不入库，需生成） | `tools/fetch_deps.py --vendor <目录>` |
 | 7-Zip | 用于解压 FFmpeg 归档 | 见 `fetch_deps.py` 的 `SEVENZ` 候选表 |
@@ -18,7 +18,7 @@
 一次装好 CLI 之后，下面所有命令都能写成 `pluginplayer <子命令>`：
 
 ```bat
-F:\Python314\python.exe tools\pp_cli.py install-cli
+/Python314/python.exe tools\pp_cli.py install-cli
 pluginplayer doctor          :: 体检：Python/编译器/Node/vendor/dist/插件哈希/端口/命令
 ```
 
@@ -30,9 +30,9 @@ pluginplayer doctor          :: 体检：Python/编译器/Node/vendor/dist/插�
 ## 2. 从零到能跑
 
 ```bat
-F:\Python314\python.exe tools\fetch_deps.py     :: 1) 准备 vendor/（首次必须）
-F:\Python314\python.exe build.py                :: 2) 编译内核 + 8 个插件 + 打包 dist/
-F:\Python314\python.exe build.py --smoke        :: 3) 工具链冒烟（SDL3/FFmpeg 能否链接并解码）
+/Python314/python.exe tools\fetch_deps.py     :: 1) 准备 vendor/（首次必须）
+/Python314/python.exe build.py                :: 2) 编译内核 + 8 个插件 + 打包 dist/
+/Python314/python.exe build.py --smoke        :: 3) 工具链冒烟（SDL3/FFmpeg 能否链接并解码）
 pluginplayer selftest                           :: 4) 全链路自检（样例自动生成，产出 JSON 报告）
 ```
 
@@ -100,11 +100,11 @@ pluginplayer selftest                           :: 4) 全链路自检（样例�
 本仓库规模小，收成一个文件）。
 
 ```bat
-F:\Python314\python.exe tools\verify.py                 :: 全跑
-F:\Python314\python.exe tools\verify.py --list          :: 看有哪些门禁
-F:\Python314\python.exe tools\verify.py --only doc-links,arg-bounds-align
-F:\Python314\python.exe tools\verify.py --json          :: 机器可读
-F:\Python314\python.exe tools\verify.py --verbose       :: 打印每条检查的依据
+/Python314/python.exe tools\verify.py                 :: 全跑
+/Python314/python.exe tools\verify.py --list          :: 看有哪些门禁
+/Python314/python.exe tools\verify.py --only doc-links,arg-bounds-align
+/Python314/python.exe tools\verify.py --json          :: 机器可读
+/Python314/python.exe tools\verify.py --verbose       :: 打印每条检查的依据
 ```
 
 门禁分三类：
@@ -172,10 +172,10 @@ def g_my_gate(verbose):
 
 ```bat
 ci.bat                                    :: Windows 一键（等价于下一行）
-F:\Python314\python.exe tools\ci.py        :: 本地：能跑的都跑
+/Python314/python.exe tools\ci.py        :: 本地：能跑的都跑
 python3 tools/ci.py --profile ci           :: 云端：只跑可移植阶段
-F:\Python314\python.exe tools\ci.py --list        :: 列出阶段与可移植性
-F:\Python314\python.exe tools\ci.py --only gates,cpp-unit
+/Python314/python.exe tools\ci.py --list        :: 列出阶段与可移植性
+/Python314/python.exe tools\ci.py --only gates,cpp-unit
 ```
 
 阶段自己做前提判定：**满足就跑，不满足记 `[SKIP]` 并写明原因**（跳过 ≠ 通过）。
@@ -221,7 +221,7 @@ ci.bat                                          :: 门禁 → 两种单测 → �
 想快就只跑门禁（<1 秒、不需要构建产物、也不需要 vendor/）：
 
 ```bat
-F:\Python314\python.exe tools\verify.py
+/Python314/python.exe tools\verify.py
 ```
 
 按改动类型挑着跑：

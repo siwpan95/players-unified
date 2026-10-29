@@ -28,7 +28,7 @@ import { buildMediaItems } from '../src/web/library-core.mjs'
 import { parseRange } from '../src/web/library-face.mjs'
 import { writeReport } from './helpers/report.mjs'
 
-const PYTHON = 'F:/Python314/python.exe'
+const PYTHON = 'python'
 const REPORT = path.resolve(HOST_DIR, '..', 'docs', 's5-library-face-report.json')
 
 const results = []
